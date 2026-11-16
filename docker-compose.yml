@@ -1,0 +1,15 @@
+# PostgreSQL para desarrollo. Uso:  docker compose up -d
+# (Este archivo no pudo probarse en el entorno de generación, que no dispone de Docker.)
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: consulta
+      POSTGRES_PASSWORD: consulta_dev
+      POSTGRES_DB: consulta_ciudadano
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:

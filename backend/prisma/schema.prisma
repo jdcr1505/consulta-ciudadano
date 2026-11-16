@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EstadoUsuario {
+  ACTIVO
+  INACTIVO
+}
+
+enum EstadoSolicitud {
+  VALIDADA
+  PENDIENTE_REVISION
+  APROBADA
+  RECHAZADA
+}
+
+enum ResultadoValidacion {
+  VALIDADO
+  NO_ENCONTRADO
+  DATOS_NO_COINCIDEN
+  SERVICIO_NO_DISPONIBLE
+}
+
+enum Rh {
+  POSITIVO
+  NEGATIVO
+}
+
+enum GrupoSanguineo {
+  A
+  B
+  AB
+  O
+}
+
+enum EstadoJudicial {
+  REQUERIDO
+  NO_REQUERIDO
+}
+
+enum ResultadoConsulta {
+  REQUERIDO
+  NO_REQUERIDO
+  NO_ENCONTRADO
+}
+
+enum OrigenConsulta {
+  ESCANER
+  MANUAL
+}
+
+enum EstadoNovedad {
+  REGISTRADA
+  EN_REVISION
+  ATENDIDA
+  DESCARTADA
+}
+
+model FuerzaPublica {
+  id          Int          @id @default(autoincrement())
+  nombre      String       @unique @db.VarChar(40)
+  rangos      Rango[]
+  usuarios    Usuario[]
+  solicitudes Solicitud[]
+
+  @@map("fuerza_publica")
+}
+
+model Rango {
+  id              Int           @id @default(autoincrement())
+  fuerzaPublicaId Int           @map("fuerza_publica_id")
+  nombre          String        @db.VarChar(60)
+  fuerza          FuerzaPublica @relation(fields: [fuerzaPublicaId], references: [id])
+  usuarios        Usuario[]
+  solicitudes     Solicitud[]
+
+  @@unique([fuerzaPublicaId, nombre])
+  @@unique([fuerzaPublicaId, id])
+  @@map("rango")
+}
+
+model Rol {
+  id          Int           @id @default(autoincrement())
+  nombre      String        @unique @db.VarChar(40)
+  descripcion String?       @db.VarChar(200)
+  esBase      Boolean       @default(false) @map("es_base")
+  usuarios    Usuario[]
+  permisos    RolPermiso[]
+
+  @@map("rol")
+}
+
+model Opcion {
+  id       Int       @id @default(autoincrement())
+  codigo   String    @unique @db.VarChar(40)
+  nombre   String    @db.VarChar(80)
+  permisos Permiso[]
+
+  @@map("opcion")
+}
+
+model Permiso {
+  id       Int          @id @default(autoincrement())
+  opcionId Int          @map("opcion_id")
+  accion   String       @db.VarChar(30)
+  codigo   String       @unique @db.VarChar(80)
+  opcion   Opcion       @relation(fields: [opcionId], references: [id])
+  roles    RolPermiso[]
+
+  @@unique([opcionId, accion])
+  @@map("permiso")
+}
+
+model RolPermiso {
+  rolId     Int     @map("rol_id")
+  permisoId Int     @map("permiso_id")
+  rol       Rol     @relation(fields: [rolId], references: [id], onDelete: Cascade)
+  permiso   Permiso @relation(fields: [permisoId], references: [id], onDelete: Cascade)
+
+  @@id([rolId, permisoId])
+  @@map("rol_permiso")
+}
+
+model Usuario {
+  id                  Int            @id @default(autoincrement())
+  identificacion      String         @unique @db.VarChar(15)
+  nombres             String         @db.VarChar(100)
+  apellidos           String         @db.VarChar(100)
+  correo              String         @unique @db.VarChar(254)
+  rolId               Int            @map("rol_id")
+  fuerzaPublicaId     Int?           @map("fuerza_publica_id")
+  rangoId             Int?           @map("rango_id")
+  idFuerza            String?        @map("id_fuerza") @db.VarChar(30)
+  passwordHash        String         @map("password_hash")
+  debeCambiarPassword Boolean        @default(true) @map("debe_cambiar_password")
+  passwordExpiraEn    DateTime?      @map("password_expira_en") @db.Timestamptz
+  intentosFallidos    Int            @default(0) @map("intentos_fallidos") @db.SmallInt
+  bloqueadoHasta      DateTime?      @map("bloqueado_hasta") @db.Timestamptz
+  estado              EstadoUsuario  @default(ACTIVO)
+  creadoEn            DateTime       @default(now()) @map("creado_en") @db.Timestamptz
+  actualizadoEn       DateTime       @updatedAt @map("actualizado_en") @db.Timestamptz
+
+  rol            Rol            @relation(fields: [rolId], references: [id])
+  fuerza         FuerzaPublica? @relation(fields: [fuerzaPublicaId], references: [id])
+  rango          Rango?         @relation(fields: [rangoId], references: [id])
+  sesiones       Sesion[]
+  auditorias     Auditoria[]
+  solicitud      Solicitud?     @relation("SolicitudOrigen")
+  resueltas      Solicitud[]    @relation("SolicitudResuelta")
+  ciudadanosCre  Ciudadano[]
+  consultas      Consulta[]
+
+  @@unique([fuerzaPublicaId, idFuerza])
+  @@index([estado])
+  @@map("usuario")
+}
+
+model Solicitud {
+  id                  Int                 @id @default(autoincrement())
+  identificacion      String              @db.VarChar(15)
+  nombres             String              @db.VarChar(100)
+  apellidos           String              @db.VarChar(100)
+  correo              String              @db.VarChar(254)
+  fuerzaPublicaId     Int                 @map("fuerza_publica_id")
+  rangoId             Int                 @map("rango_id")
+  idFuerza            String              @map("id_fuerza") @db.VarChar(30)
+  resultadoValidacion ResultadoValidacion @map("resultado_validacion")
+  estado              EstadoSolicitud
+  usuarioId           Int?                @unique @map("usuario_id")
+  resueltaPor         Int?                @map("resuelta_por")
+  resueltaEn          DateTime?           @map("resuelta_en") @db.Timestamptz
+  motivo              String?             @db.VarChar(500)
+  creadaEn            DateTime            @default(now()) @map("creada_en") @db.Timestamptz
+
+  fuerza   FuerzaPublica @relation(fields: [fuerzaPublicaId], references: [id])
+  rango    Rango         @relation(fields: [rangoId], references: [id])
+  usuario  Usuario?      @relation("SolicitudOrigen", fields: [usuarioId], references: [id])
+  resolvio Usuario?      @relation("SolicitudResuelta", fields: [resueltaPor], references: [id])
+
+  @@index([estado])
+  @@map("solicitud")
+}
+
+model Sesion {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int      @map("usuario_id")
+  tokenHash String   @unique @map("token_hash") @db.VarChar(64)
+  expiraEn  DateTime @map("expira_en") @db.Timestamptz
+  revocada  Boolean  @default(false)
+  creadaEn  DateTime @default(now()) @map("creada_en") @db.Timestamptz
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("sesion")
+}
+
+model Ciudadano {
+  id               Int            @id @default(autoincrement())
+  identificacion   String         @unique @db.VarChar(15)
+  nombres          String         @db.VarChar(100)
+  apellidos        String         @db.VarChar(100)
+  fechaNacimiento  DateTime       @map("fecha_nacimiento") @db.Date
+  lugarNacimiento  String         @map("lugar_nacimiento") @db.VarChar(100)
+  fechaExpedicion  DateTime       @map("fecha_expedicion") @db.Date
+  lugarExpedicion  String         @map("lugar_expedicion") @db.VarChar(100)
+  rh               Rh
+  grupoSanguineo   GrupoSanguineo @map("grupo_sanguineo")
+  estaturaCm       Int            @map("estatura_cm") @db.SmallInt
+  estadoJudicial   EstadoJudicial @default(NO_REQUERIDO) @map("estado_judicial")
+  activo           Boolean        @default(true)
+  creadoPor        Int?           @map("creado_por")
+  creadoEn         DateTime       @default(now()) @map("creado_en") @db.Timestamptz
+  actualizadoEn    DateTime       @updatedAt @map("actualizado_en") @db.Timestamptz
+  creador          Usuario?       @relation(fields: [creadoPor], references: [id])
+  consultas        Consulta[]
+
+  @@index([estadoJudicial])
+  @@map("ciudadano")
+}
+
+model Auditoria {
+  id         BigInt   @id @default(autoincrement())
+  usuarioId  Int?     @map("usuario_id")
+  accion     String   @db.VarChar(60)
+  entidad    String?  @db.VarChar(40)
+  entidadId  String?  @map("entidad_id") @db.VarChar(40)
+  resultado  String   @db.VarChar(20)
+  ip         String?  @db.VarChar(64)
+  detalle    Json?
+  fecha      DateTime @default(now()) @db.Timestamptz
+  usuario    Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([fecha])
+  @@index([usuarioId])
+  @@map("auditoria")
+}
+
+model Consulta {
+  id                       Int               @id @default(autoincrement())
+  usuarioId                Int               @map("usuario_id")
+  ciudadanoId              Int?              @map("ciudadano_id")
+  identificacionConsultada String            @map("identificacion_consultada") @db.VarChar(15)
+  resultado                ResultadoConsulta
+  origen                   OrigenConsulta
+  fechaHora                DateTime          @default(now()) @map("fecha_hora") @db.Timestamptz
+  usuario                  Usuario           @relation(fields: [usuarioId], references: [id])
+  ciudadano                Ciudadano?        @relation(fields: [ciudadanoId], references: [id])
+
+  @@index([usuarioId, fechaHora(sort: Desc)])
+  @@index([ciudadanoId])
+  @@index([resultado, fechaHora])
+  @@map("consulta")
+}
+
+model SimDefensa {
+  identificacion String @id @db.VarChar(15)
+  nombres        String @db.VarChar(100)
+  apellidos      String @db.VarChar(100)
+  fuerza         String @db.VarChar(40)
+  rango          String @db.VarChar(60)
+  idFuerza       String @map("id_fuerza") @db.VarChar(30)
+
+  @@map("sim_defensa")
+}

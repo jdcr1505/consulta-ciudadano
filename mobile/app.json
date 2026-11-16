@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Consulta Ciudadano",
+    "slug": "consulta-ciudadano",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "platforms": [
+      "android"
+    ],
+    "android": {
+      "package": "edu.konradlorenz.consultaciudadano",
+      "permissions": [
+        "CAMERA"
+      ]
+    },
+    "extra": {
+      "apiUrl": "http://10.0.2.2:4000"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La cámara se usa solo para leer el código de barras de la cédula. La imagen no se guarda ni se envía."
+        }
+      ]
+    ]
+  }
+}
