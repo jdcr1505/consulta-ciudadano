@@ -31,22 +31,26 @@ test('maneja datos vacíos o nulos', () => {
 import { extraerIdentificacionPdf417, formatoMiles } from '../src/scanner/analisis.js';
 import { validarNumeroCedula } from '../src/validation.js';
 
-test('[HU04] PDF417: propone primero el número de 10 dígitos en la posición esperada, sin ceros de relleno', () => {
+test('[HU04] PDF417: la cédula es la TERCERA cadena numérica (orden: ?, ?, cédula, fecha)', () => {
+  const data = 'AB1234567 xx 9876543 yy 0001012345 zz 19850312';
+  assert.deepEqual(extraerIdentificacionPdf417(data), ['1012345']);
+});
+test('[HU04] PDF417: devuelve solo la cédula aunque haya otros números', () => {
+  assert.deepEqual(extraerIdentificacionPdf417('1111111 2222222 79123456 3333333 4444444'), ['79123456']);
+});
+test('[HU04] PDF417: si la tercera parece una fecha usa el respaldo (candidatos sin fechas)', () => {
+  assert.deepEqual(extraerIdentificacionPdf417('1111111 2222222 19850312 3333333'), ['1111111', '2222222', '3333333']);
+});
+test('[HU04] PDF417: con menos de 3 números usa el respaldo (posición 48, con ceros de relleno)', () => {
   const data = 'x'.repeat(48) + '0001012345' + 'PEREZ GOMEZ JUAN';
   assert.deepEqual(extraerIdentificacionPdf417(data), ['1012345']);
 });
-test('[HU04] PDF417: descarta fechas (AAAAMMDD) y deja los demás candidatos en orden', () => {
-  const data = 'ab1012345678cd19850312ef79123456';
-  assert.deepEqual(extraerIdentificacionPdf417(data), ['1012345678', '79123456']);
-});
-test('[HU04] PDF417: sin candidatos válidos devuelve lista vacía', () => {
+test('[HU04] PDF417: tercera inválida (solo ceros) → respaldo; sin candidatos → lista vacía', () => {
+  assert.deepEqual(extraerIdentificacionPdf417('2222222 3333333 0000000000'), ['2222222', '3333333']);
   assert.deepEqual(extraerIdentificacionPdf417('abc 123 xyz'), []);
   assert.deepEqual(extraerIdentificacionPdf417(null), []);
 });
-test('[HU04] PDF417: no duplica candidatos y limita a 4', () => {
-  const data = '1111111 2222222 3333333 4444444 5555555 1111111';
-  assert.deepEqual(extraerIdentificacionPdf417(data), ['1111111', '2222222', '3333333', '4444444']);
-});
+
 test('formatoMiles agrupa de a tres con puntos', () => {
   assert.equal(formatoMiles('1012345678'), '1.012.345.678');
   assert.equal(formatoMiles('79123456'), '79.123.456');

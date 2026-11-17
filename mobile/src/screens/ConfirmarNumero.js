@@ -6,7 +6,7 @@ import { formatoMiles } from '../scanner/analisis';
 import { colores, sombra } from '../theme';
 
 /** El número leído nunca se consulta a ciegas: el funcionario lo compara con la cédula física y lo confirma. */
-export default function ConfirmarNumero({ numeros, onConsultar, onLeerDeNuevo, consultando }) {
+export default function ConfirmarNumero({ numeros, advertencia, onConsultar, onLeerDeNuevo, consultando }) {
   const [sel, setSel] = useState(numeros[0]);
   const varios = numeros.length > 1;
   return (
@@ -20,7 +20,7 @@ export default function ConfirmarNumero({ numeros, onConsultar, onLeerDeNuevo, c
           <Text style={s.numero}>{formatoMiles(n)}</Text>
         </Pressable>
       ))}
-      {!varios && <Aviso>Si el número no coincide, vuelva a leer la cédula o escríbalo a mano.</Aviso>}
+      {advertencia ? <Aviso tipo="error">{advertencia}</Aviso> : !varios && <Aviso>Si el número no coincide, vuelva a leer la cédula o escríbalo a mano.</Aviso>}
       <Boton titulo="Consultar este número" onPress={() => onConsultar(sel, 'ESCANER')} cargando={consultando} />
       <Boton titulo="Volver a leer" variante="secundario" onPress={onLeerDeNuevo} />
     </ScrollView>

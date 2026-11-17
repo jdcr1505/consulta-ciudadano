@@ -44,7 +44,7 @@ export default function LectorMrz({ onNumero, onManual, onVolver }) {
       // Se reduce para que la subida sea rápida; se conserva resolución suficiente para el OCR.
       const reducida = await manipulateAsync(foto.uri, [{ resize: { width: 1600 } }], { compress: 0.75, format: SaveFormat.JPEG, base64: true });
       const r = await post('/documentos/mrz', { imagen: reducida.base64 }, { timeoutMs: 60000 });
-      if (r.valido) return onNumero(r.identificacion);
+      if (r.valido) return onNumero(r.identificacion, r.confianza);
       setError(MENSAJES[r.motivo] ?? 'No se pudo leer la zona MRZ. Intente de nuevo.');
     } catch (e) {
       setError(e.code === 'SIN_CONEXION' ? e.message : e.message || 'No se pudo leer la imagen. Intente de nuevo.');

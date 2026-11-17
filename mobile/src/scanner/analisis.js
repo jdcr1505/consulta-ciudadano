@@ -41,12 +41,21 @@ export function resumen({ type, data, raw }) {
 const esFecha = (d) => d.length === 8 && /^(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])$/.test(d);
 
 /**
- * Cédula amarilla (PDF417): extrae los NÚMEROS CANDIDATOS a identificación, el más probable primero.
- * ATENCIÓN: la posición esperada (hacia el carácter 48, 10 dígitos con ceros de relleno) es una heurística
- * NO verificada con cédulas reales; por eso la app siempre pide confirmar el número contra la cédula.
+ * Cédula amarilla (PDF417). Al leerla aparecen 4 cadenas numéricas de 6 a 10 dígitos, siempre en este orden
+ * (observado con cédulas reales): [?, ?, CÉDULA, fecha de nacimiento]. La cédula es la TERCERA.
+ * Si la tercera no existe o parece una fecha, se usa un respaldo (lista de candidatos) y la app pide confirmar.
  */
 export function extraerIdentificacionPdf417(data) {
   const texto = String(data ?? '');
+  const corridas = candidatosIdentificacion(texto);
+
+  const tercera = corridas[2];
+  if (tercera && !esFecha(tercera.valor)) {
+    const n = sinCerosIzquierda(tercera.valor);
+    if (/^\d{6,10}$/.test(n)) return [n];
+  }
+
+  // Respaldo: todos los candidatos que no parezcan fecha, el más probable primero.
   const lista = [];
   const agregar = (digitos) => {
     const n = sinCerosIzquierda(digitos);
@@ -54,7 +63,7 @@ export function extraerIdentificacionPdf417(data) {
   };
   const enPosicion = texto.slice(48, 58);
   if (/^\d{10}$/.test(enPosicion)) agregar(enPosicion);
-  for (const c of candidatosIdentificacion(texto)) if (!esFecha(c.valor)) agregar(c.valor);
+  for (const c of corridas) if (!esFecha(c.valor)) agregar(c.valor);
   return lista.slice(0, 4);
 }
 

@@ -20,7 +20,7 @@ describe('[HU04] lectura de la MRZ de la cédula digital', () => {
     const t = await tokenFuncionario(ctx);
     const r = await mrz(ctx, { imagen: b64 }, t);
     expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ valido: true, identificacion: '1012345678', intentos: 1 });
+    expect(r.body).toMatchObject({ valido: true, identificacion: '1012345678', confianza: 'alta', intentos: 1 });
     await ctx.prisma.$disconnect();
   });
   it('prueba otras variantes de la imagen si la primera no sirve', async () => {
@@ -30,9 +30,9 @@ describe('[HU04] lectura de la MRZ de la cédula digital', () => {
     expect(r.body).toMatchObject({ valido: true, identificacion: '79123456', intentos: 2 });
     await ctx.prisma.$disconnect();
   });
-  it('si el dígito de control no cuadra NO entrega un número y devuelve solo la huella', async () => {
+  it('si los dígitos de control no cuadran NO entrega un número y devuelve solo la huella', async () => {
     const [l1, l2, l3] = construirTD1('1012345678');
-    const mala = [l1.replace('101234567', '101234568'), l2, l3].join('\n');
+    const mala = [l1, l2.slice(0, 6) + String((Number(l2[6]) + 1) % 10) + l2.slice(7), l3].join('\n');
     const ctx = await crearContexto({ ocr: ocrFalso({ completa: mala, inferior: mala, umbral: mala }) });
     const t = await tokenFuncionario(ctx);
     const r = await mrz(ctx, { imagen: b64 }, t);
@@ -41,6 +41,24 @@ describe('[HU04] lectura de la MRZ de la cédula digital', () => {
     expect(r.body.identificacion).toBeUndefined();
     expect(JSON.stringify(r.body)).not.toMatch(/1012345|PEREZ|JUAN/);
     expect(r.body.huella.join('')).toMatch(/^[9A<]+$/);
+    await ctx.prisma.$disconnect();
+  });
+  it('confianza media: dos variantes que coinciden en el número lo confirman por consenso', async () => {
+    const [l1, l2, l3] = construirTD1('1012345678');
+    const lineaMala = [l1.replace('123456789', '12X45B789'), l2, l3].join('\n'); // línea 1 ilegible, fechas correctas
+    const ctx = await crearContexto({ ocr: ocrFalso({ completa: lineaMala, inferior: lineaMala }) });
+    const t = await tokenFuncionario(ctx);
+    const r = await mrz(ctx, { imagen: b64 }, t);
+    expect(r.body).toMatchObject({ valido: true, identificacion: '1012345678', confianza: 'alta', metodo: 'consenso', intentos: 2 });
+    await ctx.prisma.$disconnect();
+  });
+  it('confianza media sin consenso: se entrega marcada como "media" para verificarla con cuidado', async () => {
+    const [l1, , l3] = construirTD1('1012345678');
+    const con = (cedula) => { const x = construirTD1(cedula); return [l1.replace('123456789', '12X45B789'), x[1], l3].join('\n'); };
+    const ctx = await crearContexto({ ocr: ocrFalso({ completa: con('1012345678'), inferior: con('1012345679'), umbral: con('1012345670') }) });
+    const t = await tokenFuncionario(ctx);
+    const r = await mrz(ctx, { imagen: b64 }, t);
+    expect(r.body).toMatchObject({ valido: true, confianza: 'media', metodo: 'linea2_fechas', intentos: 3 });
     await ctx.prisma.$disconnect();
   });
   it('sin MRZ en la imagen → MRZ_NO_ENCONTRADA', async () => {
@@ -63,7 +81,7 @@ describe('[HU04] lectura de la MRZ de la cédula digital', () => {
     await mrz(ctx, { imagen: b64 }, t);
     const a = await ctx.prisma.auditoria.findFirst({ where: { accion: 'LECTURA_MRZ' } });
     expect(JSON.stringify(a.detalle)).not.toContain('1012345678');
-    expect(a.detalle).toMatchObject({ metodo: 'extendido' });
+    expect(a.detalle).toMatchObject({ metodo: 'linea2_compuesto', confianza: 'alta' });
     await ctx.prisma.$disconnect();
   });
   it('exige sesión y permiso de consulta', async () => {

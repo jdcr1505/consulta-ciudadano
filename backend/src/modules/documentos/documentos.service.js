@@ -23,14 +23,24 @@ export function createDocumentosService({ ocr, audit }) {
       let ultimo = { valido: false, motivo: 'MRZ_NO_ENCONTRADA' };
       let huella = [];
       let intentos = 0;
+      const votos = new Map(); // lecturas de confianza media: número → {veces, metodo}
+      const respuesta = async (identificacion, confianza, metodo) => {
+        await audit.registrar({ usuarioId, accion: 'LECTURA_MRZ', resultado: 'OK', ip, detalle: { metodo, confianza, intentos } });
+        return { valido: true, identificacion, confianza, metodo, intentos };
+      };
       try {
         for (const variante of VARIANTES) {
           intentos += 1;
           const texto = await ocr.leerTexto(buffer, variante);
           const r = interpretarMrz(texto);
+          if (r.valido && r.confianza === 'alta') return await respuesta(r.identificacion, 'alta', r.metodo);
           if (r.valido) {
-            await audit.registrar({ usuarioId, accion: 'LECTURA_MRZ', resultado: 'OK', ip, detalle: { metodo: r.metodo, intentos } });
-            return { valido: true, identificacion: r.identificacion, metodo: r.metodo, intentos };
+            // Confianza media: si dos variantes distintas de la imagen coinciden en el número, se considera confiable.
+            const v = votos.get(r.identificacion) ?? { veces: 0, metodo: r.metodo };
+            v.veces += 1;
+            votos.set(r.identificacion, v);
+            if (v.veces >= 2) return await respuesta(r.identificacion, 'alta', 'consenso');
+            continue;
           }
           // Se conserva el mejor diagnóstico: preferir "dígito de control inválido" (se encontró estructura).
           if (r.motivo === 'DIGITO_CONTROL_INVALIDO' || ultimo.motivo === 'MRZ_NO_ENCONTRADA') { ultimo = r; huella = huellaMrz(texto); }
@@ -38,6 +48,11 @@ export function createDocumentosService({ ocr, audit }) {
       } catch (e) {
         if (e?.status) throw e;
         throw badRequest('IMAGEN_INVALIDA', 'No se pudo procesar la imagen. Intente con otra fotografía');
+      }
+      if (votos.size) {
+        // Sin confianza alta: se entrega el número más repetido, marcado como "media" para que se verifique con cuidado.
+        const [numero, v] = [...votos.entries()].sort((x, y) => y[1].veces - x[1].veces)[0];
+        return respuesta(numero, 'media', v.metodo);
       }
       await audit.registrar({ usuarioId, accion: 'LECTURA_MRZ', resultado: 'FALLIDO', ip, detalle: { motivo: ultimo.motivo, intentos } });
       // La huella solo contiene la forma (9 = dígito, A = letra), nunca los datos leídos.

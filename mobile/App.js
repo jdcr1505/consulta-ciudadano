@@ -47,9 +47,9 @@ function Raiz() {
     switch (vista.n) {
       case 'consulta': return <NuevaConsulta onCodigo={() => ir('codigo')} onMrz={() => ir('mrz')} onManual={() => ir('manual')} onVolver={() => ir('inicio')} />;
       case 'codigo': return <LectorCodigo onNumeros={(numeros) => ir('confirmar', { numeros, volver: 'codigo' })} onManual={() => ir('manual')} onVolver={() => ir('consulta')} />;
-      case 'mrz': return <LectorMrz onNumero={(n) => ir('confirmar', { numeros: [n], volver: 'mrz' })} onManual={() => ir('manual')} onVolver={() => ir('consulta')} />;
+      case 'mrz': return <LectorMrz onNumero={(n, confianza) => ir('confirmar', { numeros: [n], volver: 'mrz', advertencia: confianza === 'media' ? 'Lectura parcial: no se pudo validar toda la zona MRZ. Compare cada dígito con la cédula antes de consultar.' : null })} onManual={() => ir('manual')} onVolver={() => ir('consulta')} />;
       case 'manual': return <ConsultaManual onConsultar={consultar} onVolver={() => ir('consulta')} consultando={consultando} />;
-      case 'confirmar': return <ConfirmarNumero numeros={vista.numeros} onConsultar={consultar} onLeerDeNuevo={() => ir(vista.volver)} consultando={consultando} />;
+      case 'confirmar': return (<ConfirmarNumero numeros={vista.numeros} advertencia={vista.advertencia} onConsultar={consultar} onLeerDeNuevo={() => ir(vista.volver)} consultando={consultando} />);
       case 'resultado': return <Resultado vista={vista} onNueva={() => ir('consulta')} onInicio={() => ir('inicio')} />;
       case 'diagnostico': return <Diagnostico onVolver={() => ir('inicio')} />;
       default: return <Home onConsultar={() => ir('consulta')} onDiagnostico={() => ir('diagnostico')} />;
