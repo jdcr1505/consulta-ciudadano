@@ -7,7 +7,7 @@ import { SmtpMailProvider } from './integrations/mail/SmtpMailProvider.js';
 import { createApp } from './app.js';
 
 const cfg = loadConfig();
-const prisma = createPrisma(cfg.databaseUrl);
+const prisma = createPrisma(cfg.databaseUrl, { max: cfg.dbPoolMax, connectionTimeoutMillis: cfg.dbConnectTimeoutMs });
 const mail = cfg.mailMode === 'smtp' ? new SmtpMailProvider(cfg) : new DevMailProvider();
 const defensa = new SimDefensaProvider(prisma); // SIMULACIÓN: sustituir por un proveedor real autorizado
 

@@ -1,0 +1,24 @@
+{
+  "name": "consulta-ciudadano",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema de Consulta Ciudadano — comandos para todo el proyecto",
+  "engines": { "node": ">=22.9" },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "setup:sin-movil": "node scripts/setup.mjs --sin-movil",
+    "doctor": "node scripts/doctor.mjs",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "dev": "concurrently -k -n api,web -c blue,green \"npm --prefix backend run dev\" \"npm --prefix web run dev\"",
+    "dev:movil": "node scripts/dev-movil.mjs",
+    "dev:todo": "concurrently -k -n api,web,movil -c blue,green,magenta \"npm --prefix backend run dev\" \"npm --prefix web run dev\" \"node scripts/dev-movil.mjs\"",
+    "build": "npm --prefix web run build",
+    "start": "npm run build && npm --prefix backend run start",
+    "test": "npm run test:scripts && npm --prefix backend test && npm --prefix web test && npm --prefix mobile test",
+    "test:scripts": "node --test scripts/red.test.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}

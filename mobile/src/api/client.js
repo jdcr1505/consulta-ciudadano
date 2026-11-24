@@ -80,3 +80,12 @@ export async function api(path, opciones = {}) {
 
 export const get = (p) => api(p);
 export const post = (p, body = {}, opciones = {}) => api(p, { method: 'POST', body, ...opciones });
+
+export const qs = (obj) => {
+  const p = new URLSearchParams();
+  Object.entries(obj).forEach(([k, v]) => {
+    if (v !== '' && v !== undefined && v !== null) p.set(k, String(v));
+  });
+  const s = p.toString();
+  return s ? `?${s}` : '';
+};

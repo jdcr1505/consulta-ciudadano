@@ -7,11 +7,14 @@ import { Icono } from './icons.jsx';
 import { Iniciales } from './ui.jsx';
 
 const NAV = [
-  { a: '/inicio', t: 'Inicio', icono: 'inicio', permiso: null },
-  { a: '/ciudadanos', t: 'Ciudadanos', icono: 'cedula', permiso: 'ciudadanos:leer' },
-  { a: '/reportes', t: 'Reportes', icono: 'informe', permiso: 'reportes:leer' },
-  { a: '/usuarios', t: 'Usuarios', icono: 'usuarios', permiso: 'usuarios:leer' },
-  { a: '/roles', t: 'Roles y permisos', icono: 'escudo', permiso: 'roles:leer' },
+  { a: '/inicio', t: 'Inicio', icono: 'inicio', permisos: null },
+  { a: '/ciudadanos', t: 'Ciudadanos', icono: 'cedula', permisos: ['ciudadanos:leer'] },
+  { a: '/solicitudes', t: 'Solicitudes', icono: 'solicitudes', permisos: ['solicitudes:leer'] },
+  { a: '/novedades', t: 'Novedades', icono: 'novedades', permisos: ['novedades:gestionar'] },
+  { a: '/historial', t: 'Historial', icono: 'historial', permisos: ['consultas:leer_todas', 'consultas:leer'] },
+  { a: '/reportes', t: 'Reportes', icono: 'informe', permisos: ['reportes:leer'] },
+  { a: '/usuarios', t: 'Usuarios', icono: 'usuarios', permisos: ['usuarios:leer'] },
+  { a: '/roles', t: 'Roles y permisos', icono: 'escudo', permisos: ['roles:leer'] },
 ];
 
 export function BandaSimulacion() {
@@ -23,12 +26,21 @@ export function BandaSimulacion() {
   return <div className="banda-sim" role="note"><Icono nombre="info" tam={14} />Sistema académico · {partes.join(' · ')}</div>;
 }
 
-const TITULOS = { '/inicio': 'Inicio', '/ciudadanos': 'Ciudadanos', '/reportes': 'Reportes', '/usuarios': 'Usuarios', '/roles': 'Roles y permisos' };
+const TITULOS = {
+  '/inicio': 'Inicio',
+  '/ciudadanos': 'Ciudadanos',
+  '/solicitudes': 'Solicitudes de acceso',
+  '/novedades': 'Novedades',
+  '/historial': 'Historial de consultas',
+  '/reportes': 'Reportes',
+  '/usuarios': 'Usuarios',
+  '/roles': 'Roles y permisos',
+};
 
 export default function Layout() {
   const { usuario, logout, puede } = useAuth();
   const { pathname } = useLocation();
-  const items = NAV.filter((n) => !n.permiso || puede(n.permiso));
+  const items = NAV.filter((n) => !n.permisos || n.permisos.some((p) => puede(p)));
   const hoy = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
   return (
     <div className="app">
@@ -55,7 +67,7 @@ export default function Layout() {
           <time dateTime={new Date().toISOString()}>{hoy}</time>
         </header>
         <main className="contenido" key={pathname}>
-          {items.length <= 1 && !puede('ciudadanos:leer') && !puede('usuarios:leer') && !puede('roles:leer') && !puede('reportes:leer') ? (
+          {items.length <= 1 ? (
             <div className="sin-opciones">
               <h1>Sin opciones disponibles</h1>
               <p>Su rol ({usuario.rol}) no tiene opciones en la aplicación web. Los funcionarios de la fuerza pública usan la aplicación móvil.</p>

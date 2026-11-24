@@ -48,3 +48,15 @@ export function validarNumeroCedula(texto) {
   const n = String(texto ?? '').replace(/\D/g, '').replace(/^0+/, '');
   return /^\d{6,10}$/.test(n) ? { numero: n } : { error: 'Ingrese entre 6 y 10 dígitos numéricos' };
 }
+
+/** Validación cliente para HU08 (registro de novedad): identificación válida + descripción de 10 a 1000 caracteres. */
+export function validarNovedad({ identificacion, descripcion }) {
+  const e = {};
+  const rId = validarNumeroCedula(identificacion);
+  if (rId.error) e.identificacion = 'La identificación debe tener entre 6 y 10 dígitos numéricos';
+  const desc = String(descripcion ?? '').trim();
+  if (!desc) e.descripcion = 'La descripción es obligatoria';
+  else if (desc.length < 10) e.descripcion = 'Describa la novedad con al menos 10 caracteres';
+  else if (desc.length > 1000) e.descripcion = 'La descripción admite máximo 1000 caracteres';
+  return e;
+}

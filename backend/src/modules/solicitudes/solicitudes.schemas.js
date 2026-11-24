@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { correoSchema, identificacionSchema, nombreSchema } from '../../common/fields.js';
+import { correoSchema, identificacionSchema, idParam, nombreSchema, paginacion } from '../../common/fields.js';
 
 export const crearSolicitudSchema = {
   body: z.object({
@@ -15,5 +15,22 @@ export const crearSolicitudSchema = {
       .max(30, 'El ID Fuerza admite máximo 30 caracteres')
       .regex(/^[A-Za-z0-9-]+$/, 'El ID Fuerza solo admite letras, números y guion'),
     correo: correoSchema,
+  }),
+};
+
+export const listarSolicitudesSchema = {
+  query: z.object({
+    estado: z.enum(['VALIDADA', 'PENDIENTE_REVISION', 'APROBADA', 'RECHAZADA'], { error: 'Estado inválido' }).optional(),
+    q: z.string().trim().max(60).optional(),
+    ...paginacion,
+  }),
+};
+
+export const idSolicitudSchema = { params: idParam };
+
+export const rechazarSolicitudSchema = {
+  params: idParam,
+  body: z.object({
+    motivo: z.string({ error: 'Indique el motivo del rechazo' }).trim().min(5, 'El motivo debe tener al menos 5 caracteres').max(500, 'El motivo admite máximo 500 caracteres'),
   }),
 };

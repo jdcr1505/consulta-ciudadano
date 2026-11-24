@@ -23,7 +23,8 @@ Mapeo de supuestos (el Excel no documenta criterios de aceptación de estas HU):
 | `GET /reportes/ciudadanos/vista-previa?estado=&columnas=&page=&pageSize=` | `reportes:leer` | Una fila por ciudadano activo. `columnas` opcionales: `resultado`, `ultimaConsulta` |
 | `GET /resumen` | sesión | Indicadores de inicio según permisos |
 
-**Errores diferenciados de la consulta:** `400 IDENTIFICACION_INVALIDA`, `404 CIUDADANO_NO_ENCONTRADO` (queda registrada como `NO_ENCONTRADO`), `403 CONSULTA_NO_AUTORIZADA` (queda auditada), `503 SERVICIO_NO_DISPONIBLE` (**nunca** devuelve un resultado y no registra consulta) y `429`.
+**Respuesta:** `{consulta, resultado: REQUERIDO|NO_REQUERIDO, registrado: bool, ciudadano: {identificacion, nombres, apellidos} | null}`. Quien **no figura en el sistema** recibe `resultado: NO_REQUERIDO`, `registrado: false` y `ciudadano: null` (decisión B8); internamente la consulta se guarda como `NO_ENCONTRADO`.
+**Errores diferenciados:** `400 IDENTIFICACION_INVALIDA`, `403 CONSULTA_NO_AUTORIZADA` (queda auditada), `503 SERVICIO_NO_DISPONIBLE` (**nunca** devuelve un resultado y no registra consulta) y `429`.
 Un error de conexión **no** se interpreta como «No requerido»: la app móvil muestra «Sin conexión / Servicio no disponible» con la aclaración explícita.
 
 **Base de datos:** nueva tabla `consulta` (solo inserción por trigger, `CHECK` de coherencia resultado/ciudadano, índices por usuario+fecha, ciudadano y resultado+fecha). Migración `20261101000000_sprint2_consulta`.
@@ -47,20 +48,22 @@ Un error de conexión **no** se interpreta como «No requerido»: la app móvil 
 | # | Supuesto |
 |---|---|
 | B1 | Se quitan los ceros de relleno del número leído (`0001012345` → `1012345`) y se buscan también las variantes almacenadas con ceros (conserva el requisito de texto con ceros iniciales) |
-| B2 | Un ciudadano desactivado (HU14) no está disponible para consultas: se responde como no encontrado |
-| B3 | La consulta de un número inexistente **se registra** (`NO_ENCONTRADO`); los errores de servicio solo van a auditoría/log |
+| B2 | **(Revisada)** Desactivar un ciudadano (HU14) lo oculta de listados y reportes, pero **no cambia la consulta**: un registro «requerido» desactivado sigue siendo «requerido». Evita que una desactivación lo convierta en «no requerido» por la regla B8 |
+| B3 | La consulta de un número que no figura **se registra** como `NO_ENCONTRADO` (internamente); los errores de servicio solo van a auditoría/log |
 | B4 | HU05 muestra datos mínimos: identificación, nombres, apellidos y resultado (minimización de datos personales) |
 | B5 | HU16 (opción A aprobada): una fila por ciudadano activo; «Resultado» = estado vigente; «Última consulta» = máxima fecha en `consulta` |
 | B6 | «Consultas de hoy» usa el día calendario de Colombia (UTC−5) |
+| B8 | **Quien no figura en el sistema se considera «No requerido»** (decisión del equipo): no hay requerimiento registrado. La app lo aclara («no figura en el sistema»). Sustituye al estado de error «ciudadano inexistente» previsto inicialmente. Un fallo de conexión o de servicio sigue siendo un error y **nunca** se muestra como «No requerido» |
 | B7 | El botón «Generar PDF» de la web está **deshabilitado** hasta HU17 y lo indica en pantalla |
 
 ## 5. Pruebas (ejecutadas en el entorno de generación)
 
 | Suite | Resultado |
 |---|---|
-| Backend — unitarias + integración API/BD contra PostgreSQL 16 real (incluye consultas, reportes, MRZ, OCR real sobre imagen sintética con `OCR_REAL=1`) | **199 / 199** (198 por defecto; la del OCR real es opt-in) |
+| Backend — unitarias + integración API/BD contra PostgreSQL 16 real (consultas, reportes, MRZ, despliegue/web estática, OCR real opcional con `OCR_REAL=1`) | **211 / 211** + 1 opcional (OCR real) |
 | Web — Testing Library con red simulada | **15 / 15** |
-| Móvil — lógica de validación y extracción | **23 / 23** |
+| Móvil — lógica de validación y extracción (PDF417 incluye cadenas de dígitos pegadas) | **27 / 27** |
+| Scripts — detección de la IP de red | **6 / 6** |
 | Recorrido completo contra el **servidor real** (`server.js`, OCR real, BD de desarrollo): registro → credenciales → cambio de contraseña → consultas → MRZ → reporte → resumen | **15 / 15 comprobaciones** |
 | Móvil — empaquetado Android (Metro/Hermes) | Compila (849 módulos) — no es un APK |
 
@@ -93,3 +96,9 @@ Vectores oficiales ICAO 9303 verificados en las pruebas del dígito de control (
 
 ## 10. Pendiente (Sprint 3)
 HU07 (historial), HU08–HU09 y HU15 (novedades), HU10–HU11 (solicitudes), HU17 (PDF), y la documentación final (manuales, guía de despliegue, presentación, guía de sustentación).
+
+## 11. Ajustes posteriores al cierre del Sprint 2 (despliegue y scripts)
+- **Scripts de raíz:** `setup`, `dev` (API + web en una terminal), `dev:movil` (detecta la IP), `dev:todo`, `doctor`, `build`, `start`, `test`, `db:up/down`.
+- **Despliegue:** `Dockerfile` (backend + web compilada en el mismo origen), `docker-compose.yml` con `restart: unless-stopped`, configuración para **Neon** (`DATABASE_URL` agrupada + `DIRECT_URL` directa para migraciones, pool y tiempos de espera para bases que se suspenden), `eas.json` para el APK. Guía en `docs/DESPLIEGUE.md`.
+- **Backend listo para producción:** `--env-file-if-exists` (no exige `.env`), `trust proxy`, CSP con `upgrade-insecure-requests` en producción, cookie `Secure`, `start:prod` (migra y arranca), `SEED_DEMO`.
+- **Verificado localmente:** modo producción sirviendo la web y la API, cookie y cabeceras, `npm run dev`, `doctor` con la BD encendida y apagada. **No verificado:** construcción del `Dockerfile`, conexión a Neon, despliegue en Render, compilación EAS, SMTP real.

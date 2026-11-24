@@ -11,9 +11,9 @@ const SIN_CONEXION = new Set(['SIN_CONEXION', 'SERVICIO_NO_DISPONIBLE']);
 function descripcion(v) {
   if (v.tipo === 'ok') {
     const req = v.datos.resultado === 'REQUERIDO';
-    return { color: req ? colores.rojo : colores.verde, icono: req ? 'alert-circle' : 'checkmark-circle', titulo: req ? 'Requerido' : 'No requerido', sub: 'Estado judicial del ciudadano' };
+    const sub = v.datos.registrado === false ? 'No figura en el sistema' : 'Estado judicial del ciudadano';
+    return { color: req ? colores.rojo : colores.verde, icono: req ? 'alert-circle' : 'checkmark-circle', titulo: req ? 'Requerido' : 'No requerido', sub };
   }
-  if (v.tipo === 'sinregistro') return { color: colores.gris, icono: 'help-circle-outline', titulo: 'Sin registro', sub: 'No hay un ciudadano con ese número' };
   const titulos = {
     IDENTIFICACION_INVALIDA: 'Número no válido',
     CONSULTA_NO_AUTORIZADA: 'Consulta no autorizada',
@@ -48,18 +48,18 @@ export default function Resultado({ vista, onNueva, onInicio }) {
         <View style={s.cuerpo}>
           {vista.tipo === 'ok' && (
             <>
-              <Text style={s.etiqueta}>Nombre</Text>
-              <Text style={s.valor}>{vista.datos.ciudadano.nombres} {vista.datos.ciudadano.apellidos}</Text>
+              {vista.datos.ciudadano && (
+                <>
+                  <Text style={s.etiqueta}>Nombre</Text>
+                  <Text style={s.valor}>{vista.datos.ciudadano.nombres} {vista.datos.ciudadano.apellidos}</Text>
+                </>
+              )}
               <Text style={s.etiqueta}>Identificación</Text>
-              <Text style={[s.valor, s.num]}>{formatoMiles(vista.datos.ciudadano.identificacion)}</Text>
+              <Text style={[s.valor, s.num]}>{formatoMiles(vista.datos.ciudadano?.identificacion ?? vista.identificacion)}</Text>
+              {vista.datos.registrado === false && (
+                <Text style={s.nota}>Esta identificación no figura en el sistema, por lo que no tiene un requerimiento registrado.</Text>
+              )}
               <View style={s.registro}><Ionicons name="time-outline" size={16} color={colores.tenue} /><Text style={s.registroTxt}>Consulta registrada · {hora}</Text></View>
-            </>
-          )}
-          {vista.tipo === 'sinregistro' && (
-            <>
-              <Text style={s.valor}>No hay un ciudadano registrado con el número</Text>
-              <Text style={[s.valor, s.num]}>{formatoMiles(vista.identificacion)}</Text>
-              <Text style={s.nota}>La consulta quedó registrada. Verifique el número e inténtelo de nuevo si lo necesita.</Text>
             </>
           )}
           {vista.tipo === 'error' && (

@@ -1,3 +1,7 @@
+import { badRequest } from '../../common/errors.js';
+import { construirPdf } from './reportes.pdf.js';
+
+export const MAX_FILAS_PDF = 5000;
 export const COLUMNAS_OPCIONALES = ['resultado', 'ultimaConsulta'];
 
 /**
@@ -43,6 +47,37 @@ export function createReportesService({ prisma, audit }) {
         page,
         pageSize,
       };
+    },
+
+    /** HU17 — PDF con los mismos criterios de HU16. Devuelve { buffer, nombreArchivo }. */
+    async generarPdf(usuario, { estado, columnas }, ip) {
+      const where = { activo: true, ...(estado !== 'TODOS' && { estadoJudicial: estado }) };
+      const total = await prisma.ciudadano.count({ where });
+      if (total > MAX_FILAS_PDF) {
+        throw badRequest('REPORTE_DEMASIADO_GRANDE', `El reporte tiene ${total} ciudadanos y el máximo es ${MAX_FILAS_PDF}. Acote los criterios`);
+      }
+      const filas = await prisma.ciudadano.findMany({
+        where,
+        orderBy: [{ apellidos: 'asc' }, { nombres: 'asc' }],
+        select: { id: true, identificacion: true, nombres: true, apellidos: true, estadoJudicial: true },
+      });
+      let ultimas = new Map();
+      if (columnas.includes('ultimaConsulta') && filas.length) {
+        const g = await prisma.consulta.groupBy({ by: ['ciudadanoId'], where: { ciudadanoId: { in: filas.map((f) => f.id) } }, _max: { fechaHora: true } });
+        ultimas = new Map(g.map((x) => [x.ciudadanoId, x._max.fechaHora]));
+      }
+      const generadoEn = new Date();
+      const buffer = await construirPdf({
+        estado,
+        columnas,
+        total,
+        generadoEn,
+        generadoPor: `${usuario.nombres} ${usuario.apellidos}`,
+        filas: filas.map((f) => ({ identificacion: f.identificacion, nombres: f.nombres, apellidos: f.apellidos, resultado: f.estadoJudicial, ultimaConsulta: ultimas.get(f.id) ?? null })),
+      });
+      await audit.registrar({ usuarioId: usuario.id, accion: 'REPORTE_PDF', ip, detalle: { estado, columnas, total } });
+      const dia = generadoEn.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+      return { buffer, nombreArchivo: `reporte-ciudadanos-${dia}.pdf` };
     },
   };
 }

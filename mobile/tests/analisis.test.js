@@ -28,29 +28,42 @@ test('maneja datos vacíos o nulos', () => {
   assert.deepEqual(candidatosIdentificacion(undefined), []);
 });
 
-import { extraerIdentificacionPdf417, formatoMiles } from '../src/scanner/analisis.js';
+import { extraerIdentificacionPdf417, formatoMiles, ordenarCandidatos } from '../src/scanner/analisis.js';
 import { validarNumeroCedula } from '../src/validation.js';
 
-test('[HU04] PDF417: la cédula es la TERCERA cadena numérica (orden: ?, ?, cédula, fecha)', () => {
-  const data = 'AB1234567 xx 9876543 yy 0001012345 zz 19850312';
-  assert.deepEqual(extraerIdentificacionPdf417(data), ['1012345']);
+test('[HU04] PDF417: cédula de 8 dígitos (relleno con ceros), cadenas separadas', () => {
+  const data = 'PubDSK_1 1234567 9876543 0052000111PEREZ GOMEZ JUAN M1985031205001O+';
+  assert.deepEqual(extraerIdentificacionPdf417(data), ['52000111']);
 });
-test('[HU04] PDF417: devuelve solo la cédula aunque haya otros números', () => {
-  assert.deepEqual(extraerIdentificacionPdf417('1111111 2222222 79123456 3333333 4444444'), ['79123456']);
+test('[HU04] PDF417: cédula de 10 dígitos separada de los números anteriores', () => {
+  const data = 'PubDSK_1 1234567 9876543 1001082867PEREZ GOMEZ JUAN M1985031205001O+';
+  assert.deepEqual(extraerIdentificacionPdf417(data), ['1001082867']);
 });
-test('[HU04] PDF417: si la tercera parece una fecha usa el respaldo (candidatos sin fechas)', () => {
-  assert.deepEqual(extraerIdentificacionPdf417('1111111 2222222 19850312 3333333'), ['1111111', '2222222', '3333333']);
+test('[HU04] PDF417: dígitos de otro campo PEGADOS a la cédula (17 seguidos) → entrega los 10 correctos, no los últimos 7', () => {
+  const data = 'PubDSK_1 1111111 ' + '1234567' + '1001082867' + 'PEREZ GOMEZ JUAN M1985031205001O+';
+  assert.deepEqual(extraerIdentificacionPdf417(data), ['1001082867']);
 });
-test('[HU04] PDF417: con menos de 3 números usa el respaldo (posición 48, con ceros de relleno)', () => {
+test('[HU04] PDF417: pegado con un resto de solo 5 dígitos (15 seguidos) también entrega la cédula completa', () => {
+  const data = 'PubDSK_1 1111111 ' + '12345' + '1001082867' + 'PEREZ GOMEZ JUAN M1985031205001O+';
+  assert.equal(extraerIdentificacionPdf417(data)[0], '1001082867');
+});
+test('[HU04] PDF417: la fecha de nacimiento nunca se devuelve como cédula', () => {
+  const r = extraerIdentificacionPdf417('PubDSK_1 1234567 9876543 0052000111PEREZ M19850312');
+  assert.ok(!r.includes('19850312'));
+});
+test('[HU04] PDF417: sin fecha ni tercera cadena usa la posición 48 (con ceros de relleno)', () => {
   const data = 'x'.repeat(48) + '0001012345' + 'PEREZ GOMEZ JUAN';
   assert.deepEqual(extraerIdentificacionPdf417(data), ['1012345']);
 });
-test('[HU04] PDF417: tercera inválida (solo ceros) → respaldo; sin candidatos → lista vacía', () => {
+test('[HU04] PDF417: una versión truncada va después de la completa (la completa tiene prioridad)', () => {
+  assert.deepEqual(ordenarCandidatos(['1082867', '1001082867', '99999999']), ['1001082867', '1082867', '99999999']);
+  assert.deepEqual(ordenarCandidatos(['52000111']), ['52000111']);
+});
+test('[HU04] PDF417: candidatos inválidos (solo ceros) → respaldo; sin candidatos → lista vacía', () => {
   assert.deepEqual(extraerIdentificacionPdf417('2222222 3333333 0000000000'), ['2222222', '3333333']);
   assert.deepEqual(extraerIdentificacionPdf417('abc 123 xyz'), []);
   assert.deepEqual(extraerIdentificacionPdf417(null), []);
 });
-
 test('formatoMiles agrupa de a tres con puntos', () => {
   assert.equal(formatoMiles('1012345678'), '1.012.345.678');
   assert.equal(formatoMiles('79123456'), '79.123.456');

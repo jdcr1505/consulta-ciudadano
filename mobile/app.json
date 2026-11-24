@@ -12,7 +12,8 @@
       "package": "edu.konradlorenz.consultaciudadano",
       "permissions": [
         "CAMERA"
-      ]
+      ],
+      "versionCode": 1
     },
     "extra": {
       "apiUrl": "http://10.0.2.2:4000"

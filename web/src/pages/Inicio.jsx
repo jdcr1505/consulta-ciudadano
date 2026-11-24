@@ -6,10 +6,13 @@ import { Icono } from '../components/icons.jsx';
 import { Aviso, BarraProporcion, Esqueleto } from '../components/ui.jsx';
 
 const ACCESOS = [
-  { a: '/ciudadanos', t: 'Registrar o consultar ciudadanos', d: 'Altas, ediciones y estado judicial simulado', icono: 'cedula', permiso: 'ciudadanos:leer' },
-  { a: '/reportes', t: 'Preparar un reporte', d: 'Elija el estado y las columnas a incluir', icono: 'informe', permiso: 'reportes:leer' },
-  { a: '/usuarios', t: 'Administrar usuarios', d: 'Cuentas, estados, roles y contraseñas', icono: 'usuarios', permiso: 'usuarios:leer' },
-  { a: '/roles', t: 'Roles y permisos', d: 'Qué puede hacer cada rol', icono: 'escudo', permiso: 'roles:leer' },
+  { a: '/ciudadanos', t: 'Registrar o consultar ciudadanos', d: 'Altas, ediciones y estado judicial simulado', icono: 'cedula', permisos: ['ciudadanos:leer'] },
+  { a: '/solicitudes', t: 'Revisar solicitudes de acceso', d: 'Aprobar o rechazar solicitudes pendientes', icono: 'solicitudes', permisos: ['solicitudes:leer'] },
+  { a: '/novedades', t: 'Gestionar novedades', d: 'Dar trámite a reportes de la fuerza pública', icono: 'novedades', permisos: ['novedades:gestionar'] },
+  { a: '/historial', t: 'Historial de consultas', d: 'Trazabilidad de verificaciones realizadas', icono: 'historial', permisos: ['consultas:leer_todas', 'consultas:leer'] },
+  { a: '/reportes', t: 'Preparar y descargar reportes', d: 'Vista previa y exportación a PDF (HU16–HU17)', icono: 'informe', permisos: ['reportes:leer'] },
+  { a: '/usuarios', t: 'Administrar usuarios', d: 'Cuentas, estados, roles y contraseñas', icono: 'usuarios', permisos: ['usuarios:leer'] },
+  { a: '/roles', t: 'Roles y permisos', d: 'Qué puede hacer cada rol', icono: 'escudo', permisos: ['roles:leer'] },
 ];
 
 export default function Inicio() {
@@ -19,7 +22,7 @@ export default function Inicio() {
   useEffect(() => { get('/resumen').then(setDatos).catch((e) => { setError(e.message); setDatos({}); }); }, []);
   const hora = new Date().getHours();
   const saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
-  const accesos = ACCESOS.filter((x) => puede(x.permiso));
+  const accesos = ACCESOS.filter((x) => x.permisos.some((p) => puede(p)));
 
   return (
     <section>
@@ -40,7 +43,29 @@ export default function Inicio() {
             <article className="indicador">
               <h2>Consultas de hoy</h2>
               <p className="cifra">{datos.consultasHoy.total}</p>
-              <p className="detalle">{datos.consultasHoy.requeridos} con resultado «requerido» · {datos.consultasHoy.noEncontrados} sin registro</p>
+              <p className="detalle">{datos.consultasHoy.requeridos} con resultado «requerido» · {datos.consultasHoy.noEncontrados} de personas que no figuran en el sistema</p>
+            </article>
+          )}
+          {datos.solicitudesPendientes !== undefined && (
+            <article className="indicador">
+              <h2>Solicitudes pendientes</h2>
+              <p className="cifra">{datos.solicitudesPendientes}</p>
+              <p className="detalle">
+                {datos.solicitudesPendientes === 0
+                  ? 'No hay solicitudes pendientes de revisión.'
+                  : <Link className="enlace" to="/solicitudes">Revisar solicitudes pendientes →</Link>}
+              </p>
+            </article>
+          )}
+          {datos.novedadesAbiertas !== undefined && (
+            <article className="indicador">
+              <h2>Novedades abiertas</h2>
+              <p className="cifra">{datos.novedadesAbiertas}</p>
+              <p className="detalle">
+                {datos.novedadesAbiertas === 0
+                  ? 'Todas las novedades han sido resueltas.'
+                  : <Link className="enlace" to="/novedades">Gestionar novedades abiertas →</Link>}
+              </p>
             </article>
           )}
           {datos.usuarios && (

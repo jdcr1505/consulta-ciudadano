@@ -24,6 +24,12 @@ export function createResumenRouter({ prisma }) {
       const n = (e) => g.find((x) => x.resultado === e)?._count._all ?? 0;
       salida.consultasHoy = { total: n('REQUERIDO') + n('NO_REQUERIDO') + n('NO_ENCONTRADO'), requeridos: n('REQUERIDO'), noEncontrados: n('NO_ENCONTRADO') };
     }
+    if (p.has('solicitudes:leer')) {
+      salida.solicitudesPendientes = await prisma.solicitud.count({ where: { estado: 'PENDIENTE_REVISION' } });
+    }
+    if (p.has('novedades:gestionar')) {
+      salida.novedadesAbiertas = await prisma.novedad.count({ where: { estado: { in: ['REGISTRADA', 'EN_REVISION'] } } });
+    }
     res.json(salida);
   });
   return router;

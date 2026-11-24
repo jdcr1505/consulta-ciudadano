@@ -48,24 +48,32 @@ describe('[HU04][HU05][HU06] consulta del estado judicial', () => {
   });
 });
 
-describe('[HU04] errores diferenciados (nunca "No requerido" por error)', () => {
-  it('ciudadano inexistente → 404 CIUDADANO_NO_ENCONTRADO, y se registra como NO_ENCONTRADO', async () => {
-    const antes = await contar({ resultado: 'NO_ENCONTRADO' });
+describe('[HU04] quien no figura en el sistema es NO REQUERIDO', () => {
+  it('ciudadano inexistente → 200 NO_REQUERIDO, sin datos personales y marcado como no registrado', async () => {
     const r = await consultar({ identificacion: '9000000009' });
-    expect(r.status).toBe(404);
-    expect(r.body.error.code).toBe('CIUDADANO_NO_ENCONTRADO');
-    expect(r.body.resultado).toBeUndefined();
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ resultado: 'NO_REQUERIDO', registrado: false, ciudadano: null });
+  });
+  it('se registra internamente como NO_ENCONTRADO (para distinguirlo en el historial) sin ciudadano asociado', async () => {
+    const antes = await contar({ resultado: 'NO_ENCONTRADO' });
+    await consultar({ identificacion: '9000000010' });
     expect(await contar({ resultado: 'NO_ENCONTRADO' })).toBe(antes + 1);
-    const fila = await ctx.prisma.consulta.findFirst({ where: { identificacionConsultada: '9000000009' } });
+    const fila = await ctx.prisma.consulta.findFirst({ where: { identificacionConsultada: '9000000010' } });
     expect(fila.ciudadanoId).toBeNull();
   });
-  it('ciudadano desactivado no está disponible para consultas', async () => {
+  it('un ciudadano registrado responde registrado:true', async () => {
+    expect((await consultar({ identificacion: '79123456' })).body).toMatchObject({ registrado: true, resultado: 'REQUERIDO' });
+  });
+  it('desactivar un ciudadano REQUERIDO NO lo convierte en "no requerido"', async () => {
     await ctx.prisma.ciudadano.update({ where: { identificacion: '80987654' }, data: { activo: false } });
     const r = await consultar({ identificacion: '80987654' });
-    expect(r.status).toBe(404);
-    expect(r.body.error.code).toBe('CIUDADANO_NO_ENCONTRADO');
     await ctx.prisma.ciudadano.update({ where: { identificacion: '80987654' }, data: { activo: true } });
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ resultado: 'REQUERIDO', registrado: true });
   });
+});
+
+describe('[HU04] errores (nunca "No requerido" por error)', () => {
   it.each([['abc'], ['123'], ['12345678901'], ['12 34 56'], ['']])('identificación inválida "%s" → 400 IDENTIFICACION_INVALIDA sin registrar', async (valor) => {
     const antes = await contar();
     const r = await consultar({ identificacion: valor });

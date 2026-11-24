@@ -34,7 +34,7 @@ export function Boton({ titulo, onPress, cargando, variante = 'primario', disabl
 }
 
 export function Aviso({ tipo = 'info', children }) {
-  const color = tipo === 'error' ? colores.peligro : tipo === 'ok' ? colores.ok : colores.petroleo;
+  const color = tipo === 'error' ? colores.peligro : tipo === 'ok' ? colores.verde : colores.petroleo;
   return (
     <View style={[s.aviso, { borderLeftColor: color }]} accessibilityRole={tipo === 'error' ? 'alert' : undefined}>
       <Text style={{ color: colores.tinta }}>{children}</Text>

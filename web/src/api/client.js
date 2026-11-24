@@ -71,6 +71,36 @@ export async function api(path, opciones = {}) {
   return interpretar(res);
 }
 
+/** Descarga un archivo binario (p. ej. PDF) conservando la renovación automática del token. */
+export async function descargarArchivo(path, nombrePorDefecto = 'reporte.pdf') {
+  let res = await llamar(path);
+  if (res.status === 401) {
+    try {
+      await refrescar();
+      res = await llamar(path);
+    } catch {
+      accessToken = null;
+      onSessionLost();
+    }
+  }
+  if (!res.ok) {
+    await interpretar(res);
+    return;
+  }
+  const dispo = res.headers?.get?.('Content-Disposition') ?? '';
+  const match = dispo.match(/filename="?([^"]+)"?/i);
+  const nombreArchivo = match?.[1] ?? nombrePorDefecto;
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = nombreArchivo;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export const get = (p) => api(p);
 export const post = (p, body = {}) => api(p, { method: 'POST', body });
 export const patch = (p, body) => api(p, { method: 'PATCH', body });

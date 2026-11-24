@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
@@ -17,6 +19,8 @@ import { createReportesService } from './modules/reportes/reportes.service.js';
 import { createResumenRouter } from './modules/resumen/resumen.routes.js';
 import { createCiudadanosRouter } from './modules/ciudadanos/ciudadanos.routes.js';
 import { createCiudadanosService } from './modules/ciudadanos/ciudadanos.service.js';
+import { createNovedadesRouter } from './modules/novedades/novedades.routes.js';
+import { createNovedadesService } from './modules/novedades/novedades.service.js';
 import { createRolesRouter } from './modules/roles/roles.routes.js';
 import { createRolesService } from './modules/roles/roles.service.js';
 import { createSolicitudesRouter } from './modules/solicitudes/solicitudes.routes.js';
@@ -31,7 +35,10 @@ import { createUsuariosService } from './modules/usuarios/usuarios.service.js';
 export function createApp({ prisma, cfg, defensa, mail, ocr = null, logger = console }) {
   const app = express();
   app.disable('x-powered-by');
-  app.use(helmet());
+  // Detrás del proxy de la plataforma (HTTPS) hace falta confiar en él para ver la IP real del cliente.
+  if (cfg.trustProxy) app.set('trust proxy', cfg.trustProxy);
+  // 'upgrade-insecure-requests' solo en producción (HTTPS); en local rompería la carga por http://localhost.
+  app.use(helmet({ contentSecurityPolicy: { useDefaults: true, directives: { 'upgrade-insecure-requests': cfg.isProduction ? [] : null } } }));
   app.use(cors({ origin: cfg.corsOrigins, credentials: true }));
   // Las fotografías de la MRZ (base64) necesitan un límite mayor; el resto de la API se mantiene en 100 kB.
   app.use('/api/v1/documentos', express.json({ limit: '4mb' }));
@@ -53,7 +60,7 @@ export function createApp({ prisma, cfg, defensa, mail, ocr = null, logger = con
 
   api.use('/auth', createAuthRouter({ cfg, authenticate: auth, service: createAuthService({ prisma, cfg, audit }) }));
   api.use('/catalogos', createCatalogosRouter({ prisma }));
-  api.use('/solicitudes', createSolicitudesRouter({ cfg, service: createSolicitudesService({ prisma, cfg, defensa, mail, audit }) }));
+  api.use('/solicitudes', createSolicitudesRouter({ cfg, authenticate: auth, service: createSolicitudesService({ prisma, cfg, defensa, mail, audit }) }));
 
   // Todo lo que sigue requiere sesión autenticada.
   api.use('/usuarios', auth, createUsuariosRouter({ service: createUsuariosService({ prisma, cfg, mail, audit }) }));
@@ -64,6 +71,7 @@ export function createApp({ prisma, cfg, defensa, mail, ocr = null, logger = con
   api.use('/documentos', auth, createDocumentosRouter({ cfg, service: createDocumentosService({ ocr, audit }) }));
   api.use('/reportes', auth, createReportesRouter({ service: createReportesService({ prisma, audit }) }));
   api.use('/resumen', auth, createResumenRouter({ prisma }));
+  api.use('/novedades', auth, createNovedadesRouter({ service: createNovedadesService({ prisma, audit }) }));
 
   // Solo modo desarrollo (MAIL_MODE=dev, prohibido en producción): ver los correos simulados.
   if (mail.simulado && Array.isArray(mail.enviados)) {
@@ -71,6 +79,26 @@ export function createApp({ prisma, cfg, defensa, mail, ocr = null, logger = con
   }
 
   app.use('/api/v1', api);
+
+  // Web compilada (web/dist) en el mismo origen que la API: sin CORS y con la cookie de sesión funcionando.
+  const indexWeb = path.join(cfg.webDistDir, 'index.html');
+  if (fs.existsSync(indexWeb)) {
+    app.use(
+      express.static(cfg.webDistDir, {
+        index: false,
+        setHeaders: (res, archivo) => {
+          // Los archivos de /assets llevan hash en el nombre: se pueden cachear para siempre.
+          res.setHeader('Cache-Control', archivo.includes(`${path.sep}assets${path.sep}`) ? 'public, max-age=31536000, immutable' : 'no-cache');
+        },
+      }),
+    );
+    // Rutas de la web (React Router): cualquier GET que no sea de la API devuelve index.html.
+    app.get(/^\/(?!api\/).*/, (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache');
+      res.sendFile(indexWeb);
+    });
+  }
+
   app.use(notFoundHandler);
   app.use(errorHandler(logger));
   return app;

@@ -13,6 +13,7 @@ export default defineConfig({
       DATABASE_URL: process.env.TEST_DATABASE_URL ?? 'postgresql://consulta:consulta_dev@localhost:5432/consulta_ciudadano_test',
       JWT_ACCESS_SECRET: 'secreto-solo-para-pruebas-0123456789abcdef',
       RATE_LIMIT_ENABLED: 'false',
+      PDF_COMPRESS: 'false',
       MAIL_MODE: 'dev',
       MAX_LOGIN_ATTEMPTS: '3',
       TEMP_PASSWORD_HOURS: '24',

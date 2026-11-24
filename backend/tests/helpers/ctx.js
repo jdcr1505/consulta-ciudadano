@@ -125,3 +125,16 @@ export async function tokenFuncionario(ctx, { identificacion = '1050607080', nom
   const c = await ctx.api().post('/api/v1/auth/cambiar-password').set(auth(l.body.accessToken)).send({ passwordActual: pwd, passwordNueva: 'Funcion1' });
   return c.body.accessToken;
 }
+
+/** Extrae el texto de un PDF generado SIN comprimir (PDF_COMPRESS=false en las pruebas). */
+export function textoDePdf(buffer) {
+  const s = buffer.toString('latin1');
+  const partes = [];
+  for (const m of s.matchAll(/\[((?:<[0-9a-fA-F]*>|[^\]<>])*)\]\s*TJ/g)) {
+    for (const h of m[1].matchAll(/<([0-9a-fA-F]*)>/g)) partes.push(Buffer.from(h[1], 'hex').toString('latin1'));
+    partes.push('\n');
+  }
+  return partes.join('');
+}
+
+export const paginasDePdf = (buffer) => (buffer.toString('latin1').match(/\/Type \/Page(?!s)/g) ?? []).length;

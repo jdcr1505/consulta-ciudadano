@@ -13,61 +13,44 @@ Proyecto académico (Ingeniería de Software 1). **Todos los datos son ficticios
 | `web/` | Aplicación web administrativa | React 19 + Vite |
 | `mobile/` | App móvil Android para la fuerza pública | React Native + Expo SDK 58 |
 | `database/` | Script SQL del esquema y datos de demostración | PostgreSQL |
+| `scripts/` | Utilidades: `setup`, `doctor`, `dev:movil`, firewall | Node.js |
 | `docs/` | Documentación | Markdown |
 
 La web y el móvil consumen **la misma API**; ninguno toca la base de datos.
 
 ## Requisitos
-Node.js 22 o superior, PostgreSQL 14+ (o Docker), y para el móvil Android Studio (emulador) o Expo Go en un teléfono.
+Node.js **22.9 o superior** y una base de datos PostgreSQL: **Neon** (recomendado, ver `docs/DESPLIEGUE.md`) o Docker Desktop para una base local. Para el móvil, un teléfono Android con la app Expo Go.
 
-## 1. Base de datos
+## Inicio rápido (3 comandos)
 ```bash
-docker compose up -d        # o use su PostgreSQL y cree la BD y el usuario de .env.example
+npm run setup      # instala todo, crea backend/.env, prepara la base (levanta Docker si es local), migra y siembra datos
+npm run dev        # API + web en UNA sola terminal  →  http://localhost:5173
+npm run dev:movil  # app móvil: detecta sola la IP de su red (no hay que escribirla)
 ```
+Atajos: `npm run dev:todo` (API + web + móvil a la vez), `npm run doctor` (diagnostica base de datos, red, firewall y configuración y dice qué hacer), `npm test` (todas las pruebas), `npm run db:up` / `db:down` (Docker).
 
-## 2. Backend
-```bash
-cd backend
-cp .env.example .env        # y cambie JWT_ACCESS_SECRET por un valor propio
-npm install
-npm run prisma:generate
-npm run db:migrate          # alternativa sin Prisma: psql -f ../database/schema.sql (y seed_demo.sql)
-npm run db:seed             # catálogos, roles, permisos, administrador inicial y datos ficticios
-npm run dev                 # http://localhost:4000/api/v1
-npm test                    # ver «Pruebas» más abajo
-OCR_REAL=1 npm test         # (opcional) incluye la prueba con el motor OCR real
-```
-Primer administrador: identificación `1000000001`, contraseña `Admin1` (definida en `.env`). **Debe cambiarla en el primer ingreso.**
+Primer administrador: identificación `1000000001`, contraseña `Admin1` (definida en `backend/.env`). **Debe cambiarla en el primer ingreso.**
 
-**Lectura de MRZ (OCR):** usa `tesseract.js` y `sharp`, que se instalan con `npm install` (descargan binarios de npm). El motor arranca solo al primer uso y guarda su caché en `backend/.ocr-cache`.
+### ¿La base de datos se apaga?
+Con Docker: active *Start Docker Desktop when you sign in* en la configuración de Docker Desktop; el `docker-compose.yml` ya usa `restart: unless-stopped`, así que el contenedor vuelve solo. Con Neon no hay nada que levantar. Si algo falla, `npm run doctor` indica la causa.
 
-**Pruebas:** usan una BD aparte cuyo nombre termina en `_test` (por defecto `consulta_ciudadano_test`; se puede
-indicar otra con `TEST_DATABASE_URL`). Las pruebas **la crean solas si no existe**, aplican el esquema y la reinician
-en cada archivo; por eso nunca tocan su base de desarrollo. El usuario de PostgreSQL necesita permiso `CREATEDB`
-(el del `docker-compose.yml` ya lo tiene). Si no lo tiene, cree la BD vacía a mano:
-`psql -U <usuario> -d postgres -c "CREATE DATABASE consulta_ciudadano_test"`.
+### Teléfono físico sin IP manual
+`npm run dev:movil` elige la IP de su Wi-Fi/Ethernet automáticamente (ignora los adaptadores virtuales de Docker/WSL). Si el teléfono no conecta, casi siempre es el Firewall de Windows: ejecute en PowerShell **como administrador** `powershell -File scripts/firewall-windows.ps1`. Para no depender de la red local, despliegue el backend y use `npm run dev:movil -- --url https://su-servidor`.
 
-## 3. Web
-```bash
-cd web
-npm install
-npm run dev                 # http://localhost:5173  (reenvía /api al backend)
-npm test
-```
+### Comandos individuales
+| Qué | Comando |
+|---|---|
+| Solo el backend | `npm --prefix backend run dev` |
+| Solo la web | `npm --prefix web run dev` |
+| Migraciones / datos | `npm --prefix backend run db:migrate` · `db:seed` |
+| Web compilada servida por el backend (como en producción) | `npm start` |
+| Pruebas del backend con el OCR real | `OCR_REAL=1 npm --prefix backend test` |
 
-## 4. Móvil (Android)
-```bash
-cd mobile
-npm install
-# Emulador Android: funciona por defecto (http://10.0.2.2:4000).
-# Teléfono físico: use la IP de su computador:
-#   EXPO_PUBLIC_API_URL=http://192.168.1.20:4000 npx expo start
-npx expo start --android
-npm test                    # pruebas de validación (sin emulador)
-```
-**APK:** no se generó en esta entrega. Opciones: `eas build -p android --profile preview` (requiere cuenta Expo) o
-`npx expo prebuild -p android` + `./gradlew assembleRelease` (requiere Android SDK). Un APK de producción que hable con
-una API por `http://` necesita permitir tráfico en claro; en producción use HTTPS.
+**Pruebas:** usan una BD aparte cuyo nombre termina en `_test` (por defecto `consulta_ciudadano_test`; otra con `TEST_DATABASE_URL`). Se **crea sola** si no existe y se recrea desde cero en cada archivo; nunca toca su base de desarrollo. El usuario de PostgreSQL necesita permiso `CREATEDB`.
+
+**Lectura de MRZ (OCR):** usa `tesseract.js` y `sharp` (se instalan con `npm install`). El motor arranca al primer uso y guarda su caché en `backend/.ocr-cache`.
+
+**APK:** no se generó en esta entrega. Se compila con EAS (`mobile/eas.json`); ver `docs/DESPLIEGUE.md`.
 
 ## Flujo de demostración
 1. Web → ingrese como administrador → cambie la contraseña → explore Ciudadanos, Usuarios y Roles.
@@ -86,7 +69,7 @@ una API por `http://` necesita permitir tráfico en claro; en producción use HT
    `GET /api/v1/dev/outbox` (solo con `MAIL_MODE=dev`, que el sistema prohíbe en producción).
 4. Ingrese en el móvil con esa contraseña temporal → el sistema obliga a cambiarla.
 5. **Consulta (Sprint 2):** en el móvil, *Consultar un ciudadano* → elija **Escribir el número** y pruebe con los ciudadanos ficticios:
-   `79123456` y `80987654` o `1022334455` → **Requerido**; `52000111` o `1012345678` → **No requerido**; `9000000009` → **Sin registro**.
+   `79123456`, `80987654` o `1022334455` → **Requerido**; `52000111` o `1012345678` → **No requerido**; cualquier número que **no figure en el sistema** (p. ej. `9000000009`) → **No requerido** (con la nota «no figura en el sistema»).
    Para probar los errores, apague el backend y consulte: debe decir «Sin conexión», nunca «No requerido».
 6. **Cédulas reales:** *Cédula amarilla* (código de barras) y *Cédula digital* (foto de la zona MRZ). El **Diagnóstico del lector** muestra la forma de lo leído sin revelar datos. Ver `docs/ENTREGA-2.md` §3 sobre lo que está y no está verificado.
 7. **Reportes (HU16):** en la web, *Reportes* → elija estado y columnas → vista previa (el PDF llega en el Sprint 3).

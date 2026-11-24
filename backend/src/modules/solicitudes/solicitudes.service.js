@@ -1,4 +1,4 @@
-import { AppError, badRequest, conflict } from '../../common/errors.js';
+import { AppError, badRequest, conflict, notFound } from '../../common/errors.js';
 import { ServicioNoDisponibleError } from '../../integrations/defensa/DefensaProvider.js';
 import { generarCredencialTemporal } from '../auth/credenciales.js';
 import { solicitudesRepository as repo } from './solicitudes.repository.js';
@@ -10,6 +10,25 @@ const MENSAJES = {
   PENDIENTE_REVISION:
     'No fue posible validar su información de forma automática. Su solicitud quedó pendiente de revisión por un administrador. Mientras esté pendiente no tendrá acceso al sistema.',
 };
+
+export function solicitudDTO(s) {
+  return {
+    id: s.id,
+    identificacion: s.identificacion,
+    nombres: s.nombres,
+    apellidos: s.apellidos,
+    correo: s.correo,
+    fuerza: { id: s.fuerza.id, nombre: s.fuerza.nombre },
+    rango: { id: s.rango.id, nombre: s.rango.nombre },
+    idFuerza: s.idFuerza,
+    resultadoValidacion: s.resultadoValidacion,
+    estado: s.estado,
+    creadaEn: s.creadaEn,
+    resueltaEn: s.resueltaEn,
+    motivo: s.motivo,
+    resueltaPor: s.resolvio ? { id: s.resolvio.id, nombres: s.resolvio.nombres, apellidos: s.resolvio.apellidos } : null,
+  };
+}
 
 /** HU01 — Registrar solicitud de acceso (con validación simulada contra Defensa) y HU02 — emisión de credenciales. */
 export function createSolicitudesService({ prisma, cfg, defensa, mail, audit }) {
@@ -106,6 +125,88 @@ export function createSolicitudesService({ prisma, cfg, defensa, mail, audit }) 
         }
         throw e;
       }
+    },
+
+    // ---------- HU10: gestionar solicitudes ----------
+    async listar({ estado, q, page, pageSize }) {
+      const where = {
+        ...(estado && { estado }),
+        ...(q && {
+          OR: [
+            { identificacion: { startsWith: q } },
+            { nombres: { contains: q, mode: 'insensitive' } },
+            { apellidos: { contains: q, mode: 'insensitive' } },
+            { correo: { contains: q.toLowerCase() } },
+          ],
+        }),
+      };
+      const [items, total] = await repo.listar(prisma, { where, skip: (page - 1) * pageSize, take: pageSize });
+      return { items: items.map(solicitudDTO), total, page, pageSize };
+    },
+
+    async obtener(id) {
+      const s = await repo.porId(prisma, id);
+      if (!s) throw notFound('SOLICITUD_NO_ENCONTRADA', 'Solicitud no encontrada');
+      return solicitudDTO(s);
+    },
+
+    // ---------- HU11: aprobar o rechazar ----------
+    /** Aprobar crea el usuario FUNCIONARIO, genera la contraseña temporal (HU02) y la envía por correo. Todo o nada. */
+    async aprobar(actor, id, ip) {
+      const s = await repo.porId(prisma, id);
+      if (!s) throw notFound('SOLICITUD_NO_ENCONTRADA', 'Solicitud no encontrada');
+      if (s.estado !== 'PENDIENTE_REVISION') {
+        throw conflict('SOLICITUD_NO_PENDIENTE', 'Solo se pueden resolver solicitudes pendientes de revisión');
+      }
+      if (await repo.usuarioPorIdentificacionOCorreo(prisma, s.identificacion, s.correo)) {
+        throw conflict('USUARIO_YA_REGISTRADO', 'Ya existe un acceso registrado con la identificación o el correo de la solicitud');
+      }
+      const rol = await repo.rolPorNombre(prisma, ROL_FUNCIONARIO);
+      const cred = await generarCredencialTemporal(cfg);
+      try {
+        await prisma.$transaction(async (tx) => {
+          const usuario = await repo.crearUsuarioFuncionario(tx, {
+            identificacion: s.identificacion,
+            nombres: s.nombres,
+            apellidos: s.apellidos,
+            correo: s.correo,
+            rolId: rol.id,
+            fuerzaPublicaId: s.fuerzaPublicaId,
+            rangoId: s.rangoId,
+            idFuerza: s.idFuerza,
+            passwordHash: cred.passwordHash,
+            debeCambiarPassword: true,
+            passwordExpiraEn: cred.passwordExpiraEn,
+          });
+          const r = await repo.resolver(tx, id, { estado: 'APROBADA', usuarioId: usuario.id, resueltaPor: actor.id, resueltaEn: new Date() });
+          if (r.count === 0) throw conflict('SOLICITUD_NO_PENDIENTE', 'La solicitud ya fue resuelta por otra persona');
+          await audit.registrar({ usuarioId: actor.id, accion: 'SOLICITUD_APROBADA', entidad: 'solicitud', entidadId: id, ip, detalle: { usuarioCreado: usuario.id } }, tx);
+          // Si el correo falla, la transacción se revierte: la solicitud sigue pendiente y no queda una cuenta sin credenciales.
+          try {
+            await mail.enviarCredenciales({ para: s.correo, nombres: s.nombres, identificacion: s.identificacion, passwordTemporal: cred.passwordTemporal, expiraEn: cred.passwordExpiraEn });
+          } catch {
+            throw new AppError(503, 'CORREO_NO_DISPONIBLE', 'No fue posible enviar el correo con las credenciales. La solicitud sigue pendiente');
+          }
+        });
+      } catch (e) {
+        if (e?.code === 'P2002') throw conflict('USUARIO_YA_REGISTRADO', 'Ya existe un acceso con esa identificación, correo o ID Fuerza');
+        throw e;
+      }
+      return solicitudDTO(await repo.porId(prisma, id));
+    },
+
+    async rechazar(actor, id, { motivo }, ip) {
+      const s = await repo.porId(prisma, id);
+      if (!s) throw notFound('SOLICITUD_NO_ENCONTRADA', 'Solicitud no encontrada');
+      if (s.estado !== 'PENDIENTE_REVISION') {
+        throw conflict('SOLICITUD_NO_PENDIENTE', 'Solo se pueden resolver solicitudes pendientes de revisión');
+      }
+      await prisma.$transaction(async (tx) => {
+        const r = await repo.resolver(tx, id, { estado: 'RECHAZADA', resueltaPor: actor.id, resueltaEn: new Date(), motivo });
+        if (r.count === 0) throw conflict('SOLICITUD_NO_PENDIENTE', 'La solicitud ya fue resuelta por otra persona');
+        await audit.registrar({ usuarioId: actor.id, accion: 'SOLICITUD_RECHAZADA', entidad: 'solicitud', entidadId: id, ip }, tx);
+      });
+      return solicitudDTO(await repo.porId(prisma, id));
     },
   };
 }

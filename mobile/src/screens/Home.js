@@ -5,11 +5,18 @@ import Guilloche from '../components/Guilloche';
 import { Aviso, Boton, Opcion } from '../components/ui';
 import { colores, sombra } from '../theme';
 
-export default function Home({ onConsultar, onDiagnostico }) {
+export default function Home({ onConsultar, onHistorial, onNuevaNovedad, onMisNovedades, onDiagnostico }) {
   const { usuario, logout } = useAuth();
-  const puedeConsultar = usuario.permisos.includes('consultas:crear');
+  const p = usuario.permisos ?? [];
+  const puedeConsultar = p.includes('consultas:crear');
+  const puedeHistorial = p.includes('consultas:leer');
+  const puedeCrearNovedad = p.includes('novedades:crear');
+  const puedeMisNovedades = p.includes('novedades:leer_propias');
+  const tieneOpciones = puedeConsultar || puedeHistorial || puedeCrearNovedad || puedeMisNovedades;
+
   const hora = new Date().getHours();
   const saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
+
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
       <View style={s.cabecera}>
@@ -22,14 +29,56 @@ export default function Home({ onConsultar, onDiagnostico }) {
         </View>
       </View>
       <View style={s.cuerpo}>
-        {puedeConsultar ? (
+        {tieneOpciones ? (
           <>
             <Text style={s.titulo}>¿Qué necesita hacer?</Text>
-            <Opcion icono="search" titulo="Consultar un ciudadano" descripcion="Lea la cédula o escriba el número para ver su estado" onPress={onConsultar} />
-            <Opcion icono="scan-outline" titulo="Diagnóstico del lector" descripcion="Herramienta para probar la lectura de una cédula" tono="suave" onPress={onDiagnostico} />
+            {puedeConsultar && (
+              <Opcion
+                icono="search"
+                titulo="Consultar un ciudadano"
+                descripcion="Lea la cédula o escriba el número para ver su estado"
+                onPress={onConsultar}
+              />
+            )}
+            {puedeHistorial && (
+              <Opcion
+                icono="time-outline"
+                titulo="Historial de consultas"
+                descripcion="Revise las verificaciones realizadas desde su cuenta"
+                tono="suave"
+                onPress={onHistorial}
+              />
+            )}
+            {puedeCrearNovedad && (
+              <Opcion
+                icono="flag-outline"
+                titulo="Registrar novedad"
+                descripcion="Reporte una inconsistencia o novedad sobre un ciudadano"
+                tono="suave"
+                onPress={onNuevaNovedad}
+              />
+            )}
+            {puedeMisNovedades && (
+              <Opcion
+                icono="list-outline"
+                titulo="Mis novedades"
+                descripcion="Consulte el estado y respuesta de sus novedades reportadas"
+                tono="suave"
+                onPress={onMisNovedades}
+              />
+            )}
+            {puedeConsultar && (
+              <Opcion
+                icono="scan-outline"
+                titulo="Diagnóstico del lector"
+                descripcion="Herramienta para probar la lectura de una cédula"
+                tono="suave"
+                onPress={onDiagnostico}
+              />
+            )}
           </>
         ) : (
-          <Aviso tipo="error">Su rol no tiene permiso para consultar ciudadanos desde la aplicación móvil.</Aviso>
+          <Aviso tipo="error">Su rol no tiene opciones habilitadas en la aplicación móvil.</Aviso>
         )}
         <Boton titulo="Cerrar sesión" variante="secundario" onPress={logout} />
       </View>

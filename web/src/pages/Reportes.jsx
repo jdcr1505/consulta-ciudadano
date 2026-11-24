@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { get, qs } from '../api/client.js';
+import { descargarArchivo, get, qs } from '../api/client.js';
 import { Icono } from '../components/icons.jsx';
-import { Aviso, BarraProporcion, Boton, EstadoVacio, Esqueleto, Insignia, Iniciales, Paginacion, Segmentado } from '../components/ui.jsx';
+import { Aviso, BarraProporcion, Boton, EstadoVacio, Esqueleto, Insignia, Iniciales, Paginacion, Segmentado, useToast } from '../components/ui.jsx';
 
 const ESTADOS = [
   { valor: 'TODOS', texto: 'Todos' },
@@ -11,30 +11,57 @@ const ESTADOS = [
 
 const fechaHora = (iso) => (iso ? new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : 'Nunca consultado');
 
-/** HU16 — Seleccionar la información del reporte: criterios, columnas y vista previa. El PDF llega con HU17 (Sprint 3). */
+/** HU16 (criterios y vista previa) + HU17 (descarga del reporte en PDF con los mismos criterios). */
 export default function Reportes() {
+  const avisar = useToast();
   const [estado, setEstado] = useState('TODOS');
   const [resultado, setResultado] = useState(true);
   const [ultima, setUltima] = useState(false);
   const [page, setPage] = useState(1);
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState('');
+  const [generandoPdf, setGenerandoPdf] = useState(false);
 
   const columnas = [resultado && 'resultado', ultima && 'ultimaConsulta'].filter(Boolean).join(',');
 
   const cargar = useCallback(async () => {
     setError('');
-    try { setDatos(await get(`/reportes/ciudadanos/vista-previa${qs({ estado, columnas, page, pageSize: 10 })}`)); } catch (e) { setError(e.message); setDatos({ items: [], total: 0, resumen: null }); }
+    try {
+      setDatos(await get(`/reportes/ciudadanos/vista-previa${qs({ estado, columnas, page, pageSize: 10 })}`));
+    } catch (e) {
+      setError(e.message);
+      setDatos({ items: [], total: 0, resumen: null });
+    }
   }, [estado, columnas, page]);
+
   useEffect(() => { cargar(); }, [cargar]);
+
+  async function descargarPdf() {
+    setGenerandoPdf(true);
+    setError('');
+    try {
+      await descargarArchivo(`/reportes/ciudadanos/pdf${qs({ estado, columnas })}`, 'reporte-ciudadanos.pdf');
+      avisar('Reporte PDF generado y descargado');
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGenerandoPdf(false);
+    }
+  }
 
   return (
     <section>
       <header className="encabezado">
-        <div><h1>Reportes</h1><p>Elija qué ciudadanos y qué información incluir. Siempre se muestran identificación, nombres y apellidos.</p></div>
+        <div>
+          <h1>Reportes</h1>
+          <p>Elija qué ciudadanos y qué información incluir. Siempre se muestran identificación, nombres y apellidos.</p>
+        </div>
         <div className="aviso-pdf">
-          <Boton variante="secundario" disabled><Icono nombre="descargar" tam={16} />Generar PDF</Boton>
-          <small>Disponible en el Sprint 3 (HU17)</small>
+          <Boton onClick={descargarPdf} cargando={generandoPdf} disabled={!datos || generandoPdf}>
+            <Icono nombre="descargar" tam={16} />
+            Generar PDF
+          </Boton>
+          <small>Exporta el reporte completo con los criterios activos</small>
         </div>
       </header>
 

@@ -183,7 +183,7 @@ export default function Ciudadanos() {
         <Confirmar
           titulo={confirmar.activo ? 'Desactivar ciudadano' : 'Activar ciudadano'}
           mensaje={confirmar.activo
-            ? `¿Desactivar a ${confirmar.nombres} ${confirmar.apellidos}? El registro se conserva, pero dejará de estar disponible para consultas.`
+            ? `¿Desactivar a ${confirmar.nombres} ${confirmar.apellidos}? El registro se conserva y deja de aparecer en listados y reportes. Su estado judicial seguirá reflejándose en las consultas.`
             : `¿Activar de nuevo a ${confirmar.nombres} ${confirmar.apellidos}?`}
           textoConfirmar={confirmar.activo ? 'Desactivar' : 'Activar'} peligro={confirmar.activo}
           onConfirmar={alternarActivo} onCancelar={() => setConfirmar(null)} cargando={procesando} error={errorConfirmar}

@@ -153,6 +153,8 @@ model Usuario {
   resueltas      Solicitud[]    @relation("SolicitudResuelta")
   ciudadanosCre  Ciudadano[]
   consultas      Consulta[]
+  novedades      Novedad[]          @relation("NovedadRegistrada")
+  cambiosNovedad NovedadHistorial[] @relation("NovedadCambio")
 
   @@unique([fuerzaPublicaId, idFuerza])
   @@index([estado])
@@ -217,6 +219,7 @@ model Ciudadano {
   actualizadoEn    DateTime       @updatedAt @map("actualizado_en") @db.Timestamptz
   creador          Usuario?       @relation(fields: [creadoPor], references: [id])
   consultas        Consulta[]
+  novedades        Novedad[]
 
   @@index([estadoJudicial])
   @@map("ciudadano")
@@ -254,6 +257,39 @@ model Consulta {
   @@index([ciudadanoId])
   @@index([resultado, fechaHora])
   @@map("consulta")
+}
+
+model Novedad {
+  id            Int                @id @default(autoincrement())
+  ciudadanoId   Int                @map("ciudadano_id")
+  registradaPor Int                @map("registrada_por")
+  descripcion   String             @db.VarChar(1000)
+  estado        EstadoNovedad      @default(REGISTRADA)
+  creadaEn      DateTime           @default(now()) @map("creada_en") @db.Timestamptz
+  actualizadaEn DateTime           @updatedAt @map("actualizada_en") @db.Timestamptz
+  ciudadano     Ciudadano          @relation(fields: [ciudadanoId], references: [id])
+  registrador   Usuario            @relation("NovedadRegistrada", fields: [registradaPor], references: [id])
+  historial     NovedadHistorial[]
+
+  @@index([estado])
+  @@index([registradaPor, creadaEn(sort: Desc)])
+  @@index([ciudadanoId])
+  @@map("novedad")
+}
+
+model NovedadHistorial {
+  id             Int            @id @default(autoincrement())
+  novedadId      Int            @map("novedad_id")
+  estadoAnterior EstadoNovedad? @map("estado_anterior")
+  estadoNuevo    EstadoNovedad  @map("estado_nuevo")
+  cambiadoPor    Int            @map("cambiado_por")
+  comentario     String?        @db.VarChar(500)
+  fecha          DateTime       @default(now()) @db.Timestamptz
+  novedad        Novedad        @relation(fields: [novedadId], references: [id])
+  usuario        Usuario        @relation("NovedadCambio", fields: [cambiadoPor], references: [id])
+
+  @@index([novedadId, fecha])
+  @@map("novedad_historial")
 }
 
 model SimDefensa {

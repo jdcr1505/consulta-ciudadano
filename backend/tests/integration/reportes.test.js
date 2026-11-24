@@ -66,6 +66,8 @@ describe('resumen de inicio por permisos', () => {
     expect(r.body.ciudadanos).toEqual({ total: 8, requeridos: 3, noRequeridos: 5 });
     expect(r.body.usuarios.activos).toBe(2);
     expect(r.body.consultasHoy.total).toBeGreaterThanOrEqual(1);
+    expect(r.body.solicitudesPendientes).toBe(0);
+    expect(r.body.novedadesAbiertas).toBe(0);
   });
   it('el funcionario no recibe ningún indicador', async () => {
     const r = await ctx.api().get('/api/v1/resumen').set(auth(func));

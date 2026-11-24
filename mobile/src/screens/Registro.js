@@ -1,90 +1,110 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
-import { get, post } from '../api/client';
-import { Aviso, Boton, Campo, Selector } from '../components/ui';
-import { colores } from '../theme';
-import { validarRegistro } from '../validation';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useRef } from 'react';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useAuth } from '../auth/AuthContext';
+import Guilloche from '../components/Guilloche';
+import { Boton } from '../components/ui';
+import { formatoMiles } from '../scanner/analisis';
+import { colores, sombra } from '../theme';
 
-const VACIO = { identificacion: '', nombres: '', apellidos: '', fuerzaPublicaId: null, rangoId: null, idFuerza: '', correo: '' };
+const SIN_CONEXION = new Set(['SIN_CONEXION', 'SERVICIO_NO_DISPONIBLE']);
 
-export default function Registro({ onVolver, onRegistrado }) {
-  const [f, setF] = useState(VACIO);
-  const [fuerzas, setFuerzas] = useState(null);
-  const [errores, setErrores] = useState({});
-  const [general, setGeneral] = useState('');
-  const [enviando, setEnviando] = useState(false);
-  const [resultado, setResultado] = useState(null);
-
-  const cargarFuerzas = () => {
-    setGeneral('');
-    setFuerzas(null);
-    get('/catalogos/fuerzas').then((d) => setFuerzas(d.fuerzas)).catch((e) => { setFuerzas([]); setGeneral(e.message); });
+function descripcion(v) {
+  if (v.tipo === 'ok') {
+    const req = v.datos.resultado === 'REQUERIDO';
+    const sub = v.datos.registrado === false ? 'No figura en el sistema' : 'Estado judicial del ciudadano';
+    return { color: req ? colores.rojo : colores.verde, icono: req ? 'alert-circle' : 'checkmark-circle', titulo: req ? 'Requerido' : 'No requerido', sub };
+  }
+  const titulos = {
+    IDENTIFICACION_INVALIDA: 'Número no válido',
+    CONSULTA_NO_AUTORIZADA: 'Consulta no autorizada',
+    SERVICIO_NO_DISPONIBLE: 'Servicio no disponible',
+    SIN_CONEXION: 'Sin conexión',
   };
-  useEffect(cargarFuerzas, []);
+  return { color: colores.ambar, icono: SIN_CONEXION.has(v.codigo) ? 'cloud-offline-outline' : v.codigo === 'CONSULTA_NO_AUTORIZADA' ? 'close-circle' : 'warning-outline', titulo: titulos[v.codigo] ?? 'No se pudo consultar', sub: 'La consulta no se completó' };
+}
 
-  const rangos = useMemo(() => fuerzas?.find((x) => x.id === f.fuerzaPublicaId)?.rangos ?? [], [fuerzas, f.fuerzaPublicaId]);
-  const set = (k) => (v) => setF((p) => ({ ...p, [k]: v }));
+export default function Resultado({ vista, onNueva, onReportarNovedad, onInicio }) {
+  const { usuario } = useAuth();
+  const puedeNovedad = usuario?.permisos?.includes('novedades:crear');
+  const d = descripcion(vista);
+  const escala = useRef(new Animated.Value(0.92)).current;
+  const opacidad = useRef(new Animated.Value(0)).current;
 
-  async function enviar() {
-    setGeneral('');
-    const e = validarRegistro(f);
-    setErrores(e);
-    if (Object.keys(e).length) return;
-    setEnviando(true);
-    try {
-      setResultado(await post('/solicitudes', {
-        identificacion: f.identificacion.trim(), nombres: f.nombres, apellidos: f.apellidos, fuerzaPublicaId: f.fuerzaPublicaId,
-        rangoId: f.rangoId, idFuerza: f.idFuerza.trim(), correo: f.correo.trim(),
-      }));
-    } catch (err) {
-      setErrores(err.campos ?? {});
-      if (!err.details?.length) setGeneral(err.message);
-    } finally {
-      setEnviando(false);
-    }
-  }
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(escala, { toValue: 1, useNativeDriver: true, friction: 7 }),
+      Animated.timing(opacidad, { toValue: 1, duration: 220, useNativeDriver: true }),
+    ]).start();
+  }, [escala, opacidad]);
 
-  if (resultado) {
-    const ok = resultado.estado === 'VALIDADA';
-    return (
-      <ScrollView contentContainerStyle={s.cont}>
-        <Text style={s.titulo}>{ok ? 'Registro validado' : 'Solicitud en revisión'}</Text>
-        <Aviso tipo={ok ? 'ok' : 'info'}>{resultado.mensaje}</Aviso>
-        {ok && <Text style={s.nota}>Revise su correo, ingrese con su identificación y la contraseña temporal, y cámbiela en el primer acceso.</Text>}
-        <Boton titulo="Ir a iniciar sesión" onPress={() => onRegistrado(ok ? 'Registro validado. Use la contraseña temporal enviada a su correo.' : 'Su solicitud está pendiente de revisión por un administrador.')} />
-      </ScrollView>
-    );
-  }
+  const hora = vista.tipo === 'ok' ? new Date(vista.datos.consulta.fechaHora).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : null;
+  const idCiudadano = vista.tipo === 'ok' ? (vista.datos.ciudadano?.identificacion ?? vista.identificacion) : null;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={s.cont} keyboardShouldPersistTaps="handled">
-        <Text style={s.titulo}>Solicitar acceso</Text>
-        <Text style={s.nota}>Sus datos se validan contra la fuente del Departamento de Defensa (en este proyecto, una simulación con datos ficticios).</Text>
-        {general ? <Aviso tipo="error">{general}</Aviso> : null}
-        <Campo etiqueta="Identificación" value={f.identificacion} onChangeText={set('identificacion')} error={errores.identificacion} keyboardType="number-pad" maxLength={10} />
-        <Campo etiqueta="Nombres" value={f.nombres} onChangeText={set('nombres')} error={errores.nombres} autoCapitalize="words" />
-        <Campo etiqueta="Apellidos" value={f.apellidos} onChangeText={set('apellidos')} error={errores.apellidos} autoCapitalize="words" />
-        {fuerzas === null ? <ActivityIndicator color={colores.petroleo} accessibilityLabel="Cargando fuerzas" /> : (
-          <>
-            <Selector etiqueta="Fuerza pública" valor={f.fuerzaPublicaId} opciones={fuerzas} error={errores.fuerzaPublicaId}
-              onCambiar={(id) => setF((p) => ({ ...p, fuerzaPublicaId: id, rangoId: null }))} />
-            <Selector etiqueta="Rango" valor={f.rangoId} opciones={rangos} error={errores.rangoId} deshabilitado={!f.fuerzaPublicaId}
-              placeholder={f.fuerzaPublicaId ? 'Seleccione…' : 'Elija primero la fuerza'} onCambiar={set('rangoId')} />
-          </>
-        )}
-        <Campo etiqueta="ID Fuerza" value={f.idFuerza} onChangeText={set('idFuerza')} error={errores.idFuerza} autoCapitalize="characters" />
-        <Campo etiqueta="Correo electrónico" value={f.correo} onChangeText={set('correo')} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
-        {fuerzas !== null && fuerzas.length === 0 && <Boton titulo="Reintentar cargar fuerzas" variante="secundario" onPress={cargarFuerzas} />}
-        <Boton titulo="Enviar solicitud" onPress={enviar} cargando={enviando} disabled={fuerzas === null || fuerzas.length === 0} />
-        <Boton titulo="Volver" variante="secundario" onPress={onVolver} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+    <ScrollView contentContainerStyle={s.cont}>
+      <Animated.View style={[s.tarjeta, { opacity: opacidad, transform: [{ scale: escala }] }]} accessibilityRole="summary" accessibilityLabel={`${d.titulo}. ${d.sub}`}>
+        <View style={[s.cabecera, { backgroundColor: d.color }]}>
+          <Guilloche ancho={420} alto={200} lineas={18} opacidad={0.24} />
+          <Ionicons name={d.icono} size={46} color="#fff" />
+          <Text style={s.estado}>{d.titulo}</Text>
+          <Text style={s.sub}>{d.sub}</Text>
+        </View>
+        <View style={s.cuerpo}>
+          {vista.tipo === 'ok' && (
+            <>
+              {vista.datos.ciudadano && (
+                <>
+                  <Text style={s.etiqueta}>Nombre</Text>
+                  <Text style={s.valor}>{vista.datos.ciudadano.nombres} {vista.datos.ciudadano.apellidos}</Text>
+                </>
+              )}
+              <Text style={s.etiqueta}>Identificación</Text>
+              <Text style={[s.valor, s.num]}>{formatoMiles(idCiudadano)}</Text>
+              {vista.datos.registrado === false && (
+                <Text style={s.nota}>Esta identificación no figura en el sistema, por lo que no tiene un requerimiento registrado.</Text>
+              )}
+              <View style={s.registro}><Ionicons name="time-outline" size={16} color={colores.tenue} /><Text style={s.registroTxt}>Consulta registrada · {hora}</Text></View>
+            </>
+          )}
+          {vista.tipo === 'error' && (
+            <>
+              <Text style={s.valor}>{vista.mensaje}</Text>
+              {SIN_CONEXION.has(vista.codigo) && (
+                <View style={s.alerta}><Ionicons name="alert-circle" size={20} color={colores.ambar} /><Text style={s.alertaTxt}>Esto NO significa que el ciudadano no sea requerido. Vuelva a intentarlo cuando haya conexión.</Text></View>
+              )}
+            </>
+          )}
+          <Text style={s.pie}>Sistema académico con datos ficticios: no es un resultado judicial real.</Text>
+        </View>
+      </Animated.View>
+      <Boton titulo="Nueva consulta" onPress={onNueva} />
+      {vista.tipo === 'ok' && vista.datos.registrado && puedeNovedad && (
+        <Boton
+          titulo="Registrar novedad sobre este ciudadano"
+          variante="secundario"
+          onPress={() => onReportarNovedad(idCiudadano)}
+        />
+      )}
+      <Boton titulo="Ir al inicio" variante="secundario" onPress={onInicio} />
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  cont: { padding: 24, paddingTop: 28 },
-  titulo: { fontSize: 24, fontWeight: '800', color: colores.petroleo, marginBottom: 8 },
-  nota: { color: colores.tenue, marginBottom: 16 },
+  cont: { padding: 20, paddingTop: 24 },
+  tarjeta: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', marginBottom: 16, ...sombra.media },
+  cabecera: { alignItems: 'center', paddingVertical: 30, paddingHorizontal: 16, overflow: 'hidden' },
+  estado: { color: '#fff', fontSize: 34, fontWeight: '900', letterSpacing: -1, marginTop: 6, textAlign: 'center' },
+  sub: { color: 'rgba(255,255,255,.85)', fontWeight: '600', marginTop: 2 },
+  cuerpo: { padding: 20 },
+  etiqueta: { color: colores.tenue, fontSize: 12, fontWeight: '700', marginTop: 10 },
+  valor: { color: colores.tinta, fontSize: 19, fontWeight: '700', marginTop: 2 },
+  num: { fontSize: 26, fontWeight: '800', letterSpacing: 1, fontVariant: ['tabular-nums'] },
+  registro: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderTopColor: colores.linea },
+  registroTxt: { color: colores.tenue, fontSize: 13 },
+  nota: { color: colores.tenue, marginTop: 12 },
+  alerta: { flexDirection: 'row', gap: 10, backgroundColor: colores.ambarSuave, borderRadius: 10, padding: 12, marginTop: 14 },
+  alertaTxt: { flex: 1, color: colores.ambar, fontWeight: '700' },
+  pie: { color: colores.tenue, fontSize: 12, marginTop: 18 },
 });

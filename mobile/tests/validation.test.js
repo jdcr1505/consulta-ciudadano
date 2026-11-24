@@ -1,7 +1,7 @@
 // Pruebas de la lógica de validación del cliente móvil (node --test, sin emulador).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { cumplePolitica, validarCambio, validarLogin, validarRegistro } from '../src/validation.js';
+import { cumplePolitica, validarCambio, validarLogin, validarNovedad, validarRegistro } from '../src/validation.js';
 
 const valido = { identificacion: '1020304050', nombres: 'Carlos Andrés', apellidos: 'Vargas Mejía', fuerzaPublicaId: 1, rangoId: 3, idFuerza: 'PN-48213', correo: 'carlos@example.test' };
 
@@ -25,4 +25,10 @@ test('[HU03] cambio de contraseña valida política y confirmación', () => {
   assert.ok(validarCambio('Tmp123', 'abc', 'abc').passwordNueva);
   assert.ok(validarCambio('Tmp123', 'Nueva123', 'Otra1234').confirmar);
   assert.deepEqual(validarCambio('Tmp123', 'Nueva123', 'Nueva123'), {});
+});
+test('[HU08] novedad válida no produce errores y exige identificación y descripción >= 10 caracteres', () => {
+  assert.deepEqual(validarNovedad({ identificacion: '79123456', descripcion: 'Inconsistencia en el lugar de expedición del documento.' }), {});
+  assert.ok(validarNovedad({ identificacion: '12', descripcion: 'Descripción válida completa' }).identificacion);
+  assert.ok(validarNovedad({ identificacion: '79123456', descripcion: 'Corta' }).descripcion);
+  assert.ok(validarNovedad({ identificacion: '79123456', descripcion: 'a'.repeat(1001) }).descripcion);
 });

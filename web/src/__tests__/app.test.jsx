@@ -18,11 +18,11 @@ function simular(rutas) {
   llamadas = [];
   globalThis.fetch = vi.fn(async (url, opts = {}) => {
     const clave = `${opts.method ?? 'GET'} ${url.replace('/api/v1', '').split('?')[0]}`;
-    llamadas.push({ clave, cuerpo: opts.body ? JSON.parse(opts.body) : undefined });
+    llamadas.push({ clave, url, cuerpo: opts.body ? JSON.parse(opts.body) : undefined });
     if (clave === 'GET /info') return json(200, INFO);
     const h = rutas[clave];
     if (!h) return err(404, 'NO_ENCONTRADO', `sin mock para ${clave}`);
-    return typeof h === 'function' ? h(opts) : h;
+    return typeof h === 'function' ? h(opts, url) : h;
   });
 }
 const montar = (ruta = '/') => render(<MemoryRouter initialEntries={[ruta]}><AuthProvider><ToastProvider><App /></ToastProvider></AuthProvider></MemoryRouter>);
@@ -114,19 +114,21 @@ describe('[HU03] cambio obligatorio de contraseña (CA08)', () => {
 });
 
 describe('navegación según permisos', () => {
-  it('el administrador ve las tres opciones y los datos persistidos de la API', async () => {
+  it('el administrador ve todas las opciones habilitadas y los datos persistidos de la API', async () => {
     simular({
-      'POST /auth/refresh': json(200, { accessToken: 't', expiresIn: 900, usuario: usuario({ permisos: ['ciudadanos:leer', 'ciudadanos:crear', 'usuarios:leer', 'roles:leer', 'reportes:leer'] }) }),
+      'POST /auth/refresh': json(200, { accessToken: 't', expiresIn: 900, usuario: usuario({ permisos: ['ciudadanos:leer', 'ciudadanos:crear', 'solicitudes:leer', 'novedades:gestionar', 'consultas:leer_todas', 'usuarios:leer', 'roles:leer', 'reportes:leer'] }) }),
       'GET /ciudadanos': json(200, { total: 1, page: 1, pageSize: 10, items: [{ id: 1, identificacion: '00123456', nombres: 'Marta Lucía', apellidos: 'Herrera Soto', fechaNacimiento: '1960-09-05', lugarNacimiento: 'Bucaramanga', fechaExpedicion: '1978-10-11', lugarExpedicion: 'Bucaramanga', rh: 'NEGATIVO', grupoSanguineo: 'A', estaturaCm: 158, estadoJudicial: 'NO_REQUERIDO', activo: true }] }),
     });
     montar('/ciudadanos');
     const nav = await screen.findByRole('navigation', { name: 'Principal' });
     expect(nav).toHaveTextContent('Inicio');
     expect(nav).toHaveTextContent('Ciudadanos');
+    expect(nav).toHaveTextContent('Solicitudes');
+    expect(nav).toHaveTextContent('Novedades');
+    expect(nav).toHaveTextContent('Historial');
     expect(nav).toHaveTextContent('Usuarios');
     expect(nav).toHaveTextContent('Roles y permisos');
     expect(nav).toHaveTextContent('Reportes');
-    // el cero inicial de la identificación se conserva en pantalla
     expect(await screen.findByText('00123456')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Registrar ciudadano' })).toBeInTheDocument();
   });
@@ -147,17 +149,24 @@ describe('navegación según permisos', () => {
 });
 
 describe('Inicio (indicadores por permisos)', () => {
-  it('muestra los indicadores que el rol puede ver, con la proporción de requeridos', async () => {
+  it('muestra los indicadores que el rol puede ver, incluyendo solicitudes pendientes y novedades abiertas', async () => {
     simular({
-      'POST /auth/refresh': json(200, { accessToken: 't', expiresIn: 900, usuario: usuario() }),
-      'GET /resumen': json(200, { ciudadanos: { total: 8, requeridos: 3, noRequeridos: 5 }, usuarios: { activos: 2, inactivos: 1 }, consultasHoy: { total: 4, requeridos: 1, noEncontrados: 1 } }),
+      'POST /auth/refresh': json(200, { accessToken: 't', expiresIn: 900, usuario: usuario({ permisos: ['ciudadanos:leer', 'solicitudes:leer', 'novedades:gestionar', 'consultas:leer_todas'] }) }),
+      'GET /resumen': json(200, {
+        ciudadanos: { total: 8, requeridos: 3, noRequeridos: 5 },
+        usuarios: { activos: 2, inactivos: 1 },
+        consultasHoy: { total: 4, requeridos: 1, noEncontrados: 1 },
+        solicitudesPendientes: 2,
+        novedadesAbiertas: 3,
+      }),
     });
     montar('/inicio');
     expect(await screen.findByText('Ciudadanos activos')).toBeInTheDocument();
     expect(screen.getByText('8')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /Requeridos: 3. No requeridos: 5/ })).toBeInTheDocument();
     expect(screen.getByText('Consultas de hoy')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Preparar un reporte|Registrar o consultar/ })).toBeInTheDocument();
+    expect(screen.getByText('Solicitudes pendientes')).toBeInTheDocument();
+    expect(screen.getByText('Novedades abiertas')).toBeInTheDocument();
   });
 
   it('un rol sin permisos de consulta no ve indicadores', async () => {
@@ -171,14 +180,18 @@ describe('Inicio (indicadores por permisos)', () => {
   });
 });
 
-describe('[HU16] selección de la información del reporte', () => {
+describe('[HU16 y HU17] selección y generación de reporte PDF', () => {
   const fila = (id, n, a, r, u) => ({ identificacion: id, nombres: n, apellidos: a, resultado: r, ultimaConsulta: u });
   function reportes(extra = {}) {
     return {
       'POST /auth/refresh': json(200, { accessToken: 't', expiresIn: 900, usuario: usuario({ permisos: ['reportes:leer'] }) }),
-      'GET /reportes/ciudadanos/vista-previa': (opts) => json(200, {
+      'GET /reportes/ciudadanos/vista-previa': () => json(200, {
         criterios: {}, resumen: { total: 8, requeridos: 3, noRequeridos: 5 }, total: 2, page: 1, pageSize: 10,
         items: [fila('79123456', 'Jorge Enrique', 'Castaño Lara', 'REQUERIDO', null), fila('80987654', 'Andrés Felipe', 'Gómez Ríos', 'REQUERIDO', '2026-11-15T15:00:00Z')],
+      }),
+      'GET /reportes/ciudadanos/pdf': () => new Response(new Blob(['%PDF-1.4'], { type: 'application/pdf' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="reporte-ciudadanos-2026-11-24.pdf"' },
       }),
       ...extra,
     };
@@ -195,7 +208,9 @@ describe('[HU16] selección de la información del reporte', () => {
     expect(ultimaConsulta()).toContain('columnas=resultado');
   });
 
-  it('cambiar el estado y las columnas vuelve a consultar con esos criterios', async () => {
+  it('cambiar el estado y las columnas vuelve a consultar y permite descargar el PDF', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:pdf-test');
+    URL.revokeObjectURL = vi.fn();
     simular(reportes());
     montar('/reportes');
     await screen.findByText('79123456');
@@ -204,13 +219,11 @@ describe('[HU16] selección de la información del reporte', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: /última consulta/ }));
     await waitFor(() => expect(ultimaConsulta()).toContain('columnas=resultado%2CultimaConsulta'));
     expect(await screen.findByText('Nunca consultado')).toBeInTheDocument();
-  });
 
-  it('el botón de PDF está deshabilitado y explica que llega con HU17', async () => {
-    simular(reportes());
-    montar('/reportes');
-    expect(await screen.findByRole('button', { name: /Generar PDF/ })).toBeDisabled();
-    expect(screen.getByText(/Sprint 3 \(HU17\)/)).toBeInTheDocument();
+    const btnPdf = screen.getByRole('button', { name: /Generar PDF/ });
+    expect(btnPdf).toBeEnabled();
+    await userEvent.click(btnPdf);
+    await waitFor(() => expect(llamadas.some((l) => l.clave === 'GET /reportes/ciudadanos/pdf' && l.url.includes('estado=REQUERIDO'))).toBe(true));
   });
 
   it('sin permiso reportes:leer la ruta redirige al inicio', async () => {
@@ -218,5 +231,106 @@ describe('[HU16] selección de la información del reporte', () => {
     montar('/reportes');
     expect(await screen.findByText('Accesos rápidos')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Reportes' })).not.toBeInTheDocument();
+  });
+});
+
+describe('[HU10 y HU11] gestión de solicitudes de acceso', () => {
+  const solPendiente = {
+    id: 12,
+    identificacion: '1020304050',
+    nombres: 'Carlos Andrés',
+    apellidos: 'Vargas Mejía',
+    correo: 'carlos@example.test',
+    fuerza: { id: 1, nombre: 'Policía' },
+    rango: { id: 3, nombre: 'Intendente' },
+    idFuerza: 'PN-48213',
+    resultadoValidacion: 'NO_ENCONTRADO',
+    estado: 'PENDIENTE_REVISION',
+    creadaEn: '2026-11-20T14:00:00Z',
+    resueltaEn: null,
+    motivo: null,
+    resueltaPor: null,
+  };
+
+  it('lista solicitudes y permite aprobar una pendiente de revisión', async () => {
+    simular({
+      'POST /auth/refresh': json(200, { accessToken: 't', expiresIn: 900, usuario: usuario({ permisos: ['solicitudes:leer', 'solicitudes:resolver'] }) }),
+      'GET /solicitudes': json(200, { items: [solPendiente], total: 1, page: 1, pageSize: 10 }),
+      'POST /solicitudes/12/aprobar': json(200, { solicitud: { ...solPendiente, estado: 'APROBADA' } }),
+    });
+    montar('/solicitudes');
+    expect(await screen.findByText('Carlos Andrés Vargas Mejía')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Aprobar' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Aprobar y enviar credenciales' }));
+    await waitFor(() => expect(llamadas.some((l) => l.clave === 'POST /solicitudes/12/aprobar')).toBe(true));
+  });
+
+  it('exige motivo de al menos 5 caracteres al rechazar una solicitud', async () => {
+    simular({
+      'POST /auth/refresh': json(200, { accessToken: 't', expiresIn: 900, usuario: usuario({ permisos: ['solicitudes:leer', 'solicitudes:resolver'] }) }),
+      'GET /solicitudes': json(200, { items: [solPendiente], total: 1, page: 1, pageSize: 10 }),
+    });
+    montar('/solicitudes');
+    await screen.findByText('Carlos Andrés Vargas Mejía');
+    await userEvent.click(screen.getByRole('button', { name: 'Rechazar' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Rechazar solicitud' }));
+    expect(await screen.findByText(/mínimo 5 caracteres/i)).toBeInTheDocument();
+    expect(llamadas.some((l) => l.clave === 'POST /solicitudes/12/rechazar')).toBe(false);
+  });
+});
+
+describe('[HU15] gestión de novedades', () => {
+  const nov = {
+    id: 7,
+    estado: 'REGISTRADA',
+    descripcion: 'El ciudadano presentó documento duplicado durante el control.',
+    ciudadano: { identificacion: '79123456', nombres: 'Jorge Enrique', apellidos: 'Castaño Lara' },
+    registradaPor: { id: 2, identificacion: '1020304050', nombres: 'Carlos Andrés', apellidos: 'Vargas Mejía' },
+    creadaEn: '2026-11-21T10:30:00Z',
+    actualizadaEn: '2026-11-21T10:30:00Z',
+    siguientes: ['EN_REVISION', 'DESCARTADA'],
+    historial: [{ estadoAnterior: null, estadoNuevo: 'REGISTRADA', comentario: null, fecha: '2026-11-21T10:30:00Z', por: { id: 2, identificacion: '1020304050', nombres: 'Carlos Andrés', apellidos: 'Vargas Mejía' } }],
+  };
+
+  it('permite abrir una novedad y actualizar su estado a En revisión', async () => {
+    simular({
+      'POST /auth/refresh': json(200, { accessToken: 't', expiresIn: 900, usuario: usuario({ permisos: ['novedades:gestionar'] }) }),
+      'GET /novedades': json(200, { items: [nov], total: 1, page: 1, pageSize: 10 }),
+      'GET /novedades/7': json(200, { novedad: nov }),
+      'PATCH /novedades/7/estado': json(200, { novedad: { ...nov, estado: 'EN_REVISION', siguientes: ['ATENDIDA', 'DESCARTADA'] } }),
+    });
+    montar('/novedades');
+    expect(await screen.findByText('Jorge Enrique Castaño Lara')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Gestionar' }));
+    await screen.findByText('Trazabilidad de estados');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambio de estado' }));
+    await waitFor(() => expect(llamadas.some((l) => l.clave === 'PATCH /novedades/7/estado' && l.cuerpo?.estado === 'EN_REVISION')).toBe(true));
+  });
+});
+
+describe('[HU07] historial de consultas', () => {
+  it('muestra las consultas registradas y filtra por resultado', async () => {
+    simular({
+      'POST /auth/refresh': json(200, { accessToken: 't', expiresIn: 900, usuario: usuario({ permisos: ['consultas:leer_todas'] }) }),
+      'GET /consultas': json(200, {
+        total: 1,
+        page: 1,
+        pageSize: 10,
+        items: [{
+          id: 41,
+          fechaHora: '2026-11-22T15:10:00Z',
+          identificacion: '79123456',
+          resultado: 'REQUERIDO',
+          registrado: true,
+          origen: 'ESCANER',
+          ciudadano: { nombres: 'Jorge Enrique', apellidos: 'Castaño Lara' },
+          funcionario: { id: 2, identificacion: '1020304050', nombres: 'Carlos Andrés', apellidos: 'Vargas Mejía' },
+        }],
+      }),
+    });
+    montar('/historial');
+    expect(await screen.findByText('79123456')).toBeInTheDocument();
+    expect(screen.getByText('Jorge Enrique Castaño Lara')).toBeInTheDocument();
+    expect(screen.getByText('Escáner')).toBeInTheDocument();
   });
 });

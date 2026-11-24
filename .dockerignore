@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.env
+**/dev-outbox
+**/.ocr-cache
+**/.expo
+mobile
+docs
+database
+scripts
+.git

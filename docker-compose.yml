@@ -1,8 +1,10 @@
-# PostgreSQL para desarrollo. Uso:  docker compose up -d
-# (Este archivo no pudo probarse en el entorno de generación, que no dispone de Docker.)
+# PostgreSQL local para desarrollo:  npm run db:up   (o: docker compose up -d)
+# `restart: unless-stopped` lo vuelve a iniciar solo cuando Docker Desktop arranca (active en Docker Desktop:
+# Settings > General > "Start Docker Desktop when you sign in"). Con Neon no se necesita este archivo.
 services:
   db:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: consulta
       POSTGRES_PASSWORD: consulta_dev
@@ -11,5 +13,10 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U consulta -d consulta_ciudadano"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 volumes:
   pgdata:

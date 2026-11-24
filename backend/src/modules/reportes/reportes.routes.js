@@ -22,5 +22,17 @@ export function createReportesRouter({ service }) {
   router.get('/ciudadanos/vista-previa', authorize('reportes:leer'), validate(vistaPreviaSchema), async (req, res) => {
     res.json(await service.vistaPrevia(req.user, req.validQuery, req.ip));
   });
+
+  // HU17 — Mismos criterios que la vista previa; responde el archivo PDF para descargar.
+  router.get('/ciudadanos/pdf', authorize('reportes:leer'), validate(vistaPreviaSchema), async (req, res) => {
+    const { buffer, nombreArchivo } = await service.generarPdf(req.user, req.validQuery, req.ip);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${nombreArchivo}"`,
+      'Content-Length': buffer.length,
+      'Cache-Control': 'no-store', // contiene datos personales: que no quede en cachés
+    });
+    res.send(buffer);
+  });
   return router;
 }

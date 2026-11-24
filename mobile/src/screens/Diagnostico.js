@@ -2,7 +2,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Aviso, Boton } from '../components/ui';
-import { candidatosIdentificacion, resumen, sinCerosIzquierda } from '../scanner/analisis';
+import { candidatosIdentificacion, corridasDeDigitos, resumen, sinCerosIzquierda } from '../scanner/analisis';
 import { colores } from '../theme';
 
 /**
@@ -38,6 +38,7 @@ export default function Diagnostico({ onVolver }) {
   if (lectura) {
     const res = resumen(lectura);
     const cands = candidatosIdentificacion(lectura.data);
+    const corridas = corridasDeDigitos(lectura.data, 3);
     return (
       <ScrollView contentContainerStyle={s.cont}>
         <Text style={s.titulo}>Resultado de la lectura</Text>
@@ -47,6 +48,8 @@ export default function Diagnostico({ onVolver }) {
         <Text style={s.sub}>Forma del contenido (se puede compartir)</Text>
         <Text style={s.leyenda}>9 = dígito · A = letra · _ = espacio · # = símbolo · · = byte no imprimible</Text>
         <Text selectable style={s.mono}>{res.huella}</Text>
+        <Text style={s.sub}>Cadenas de dígitos completas (posición · longitud)</Text>
+        <Text selectable style={s.mono}>{corridas.map((c) => `${c.posicion}·${c.longitud}`).join('   ') || 'Ninguna'}</Text>
         <Text style={s.sub}>Números de 6 a 10 dígitos encontrados</Text>
         {cands.length === 0 ? <Text style={s.nota}>Ninguno.</Text> : cands.map((c) => (
           <Text key={c.posicion} style={s.dato}>
