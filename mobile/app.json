@@ -11,12 +11,17 @@
     "android": {
       "package": "edu.konradlorenz.consultaciudadano",
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "versionCode": 1
     },
     "extra": {
-      "apiUrl": "http://10.0.2.2:4000"
+      "apiUrl": "http://10.0.2.2:4000",
+      "eas": {
+        "projectId": "0edfb234-d1b8-4d3c-ad8a-a8b30dad0a1a"
+      }
     },
     "plugins": [
       [

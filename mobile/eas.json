@@ -10,7 +10,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REEMPLACE-CON-LA-URL-DE-SU-BACKEND"
+        "EXPO_PUBLIC_API_URL": "https://consulta-ciudadano.onrender.com"
       }
     },
     "production": {
@@ -18,7 +18,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REEMPLACE-CON-LA-URL-DE-SU-BACKEND"
+        "EXPO_PUBLIC_API_URL": "https://consulta-ciudadano.onrender.com"
       }
     }
   }
