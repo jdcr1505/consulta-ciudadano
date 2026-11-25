@@ -26,7 +26,7 @@ export const guardarRefresh = (t) => SecureStore.setItemAsync(CLAVE_REFRESH, t);
 export const leerRefresh = () => SecureStore.getItemAsync(CLAVE_REFRESH);
 export const borrarRefresh = () => SecureStore.deleteItemAsync(CLAVE_REFRESH);
 
-async function llamar(path, { method = 'GET', body, timeoutMs = 15000 } = {}) {
+async function llamar(path, { method = 'GET', body, timeoutMs = 65000 } = {}) {
   const headers = { 'x-client-type': 'mobile', Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -78,7 +78,7 @@ export async function api(path, opciones = {}) {
   return interpretar(res);
 }
 
-export const get = (p) => api(p);
+export const get = (p, opciones = {}) => api(p, opciones);
 export const post = (p, body = {}, opciones = {}) => api(p, { method: 'POST', body, ...opciones });
 
 export const qs = (obj) => {

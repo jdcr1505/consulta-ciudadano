@@ -262,3 +262,85 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   .criterios-resumen { justify-self: stretch; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* Indicador de despertar del servidor en Login */
+.estado-servidor {
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: rgba(139, 92, 246, 0.12);
+  color: #e9d5ff;
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.estado-servidor-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.estado-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #a855f7;
+  flex-shrink: 0;
+  animation: pulsoDot 1.3s ease-in-out infinite;
+}
+
+.estado-servidor.estado-listo {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(74, 222, 128, 0.35);
+  color: #4ade80;
+}
+
+.estado-servidor.estado-listo .estado-dot {
+  background: #4ade80;
+  animation: none;
+}
+
+.estado-servidor.estado-error {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+  cursor: pointer;
+}
+
+.estado-servidor.estado-error .estado-dot {
+  background: #fbbf24;
+  animation: none;
+}
+
+.barra-progreso {
+  height: 3px;
+  background: rgba(139, 92, 246, 0.22);
+  border-radius: 999px;
+  margin-top: 0.55rem;
+  overflow: hidden;
+}
+
+.barra-progreso-fill {
+  height: 100%;
+  width: 45%;
+  background: linear-gradient(90deg, #7c3aed, #c084fc);
+  border-radius: 999px;
+  animation: barraDesliza 1.5s ease-in-out infinite;
+}
+
+.login-form button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@keyframes pulsoDot {
+  0%, 100% { opacity: 0.35; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes barraDesliza {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(240%); }
+}

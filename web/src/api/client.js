@@ -21,14 +21,24 @@ export class ApiError extends Error {
 export const setAccessToken = (t) => { accessToken = t; };
 export const setOnSessionLost = (fn) => { onSessionLost = fn; };
 
-async function llamar(path, { method = 'GET', body } = {}) {
+async function llamar(path, { method = 'GET', body, timeoutMs = 65000 } = {}) {
   const headers = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const controlador = new AbortController();
+  const timer = setTimeout(() => controlador.abort(), timeoutMs);
   try {
-    return await fetch(BASE + path, { method, headers, credentials: 'include', body: body === undefined ? undefined : JSON.stringify(body) });
+    return await fetch(BASE + path, {
+      method,
+      headers,
+      credentials: 'include',
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controlador.signal,
+    });
   } catch {
     throw new ApiError(0, 'SIN_CONEXION', 'No se pudo conectar con el servidor. Verifique su conexión e intente de nuevo.');
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -101,7 +111,7 @@ export async function descargarArchivo(path, nombrePorDefecto = 'reporte.pdf') {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export const get = (p) => api(p);
+export const get = (p, opciones = {}) => api(p, opciones);
 export const post = (p, body = {}) => api(p, { method: 'POST', body });
 export const patch = (p, body) => api(p, { method: 'PATCH', body });
 export const put = (p, body) => api(p, { method: 'PUT', body });

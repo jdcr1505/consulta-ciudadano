@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { get } from '../api/client.js';
 import { useAuth, leerIdentificacionRecordada } from '../auth/AuthContext.jsx';
 import { Aviso, Boton } from '../components/ui.jsx';
 import Guilloche, { Sello } from '../components/Guilloche.jsx';
@@ -12,8 +13,26 @@ export default function Login() {
   const [general, setGeneral] = useState('');
   const [enviando, setEnviando] = useState(false);
 
+  // Estado del servidor en Render: 'cargando' | 'listo' | 'error'
+  const [servidor, setServidor] = useState('cargando');
+
+  const verificarServidor = useCallback(async () => {
+    setServidor('cargando');
+    try {
+      await get('/health', { timeoutMs: 65000 });
+      setServidor('listo');
+    } catch {
+      setServidor('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    verificarServidor();
+  }, [verificarServidor]);
+
   async function enviar(e) {
     e.preventDefault();
+    if (servidor !== 'listo') return;
     setGeneral('');
     const faltan = {};
     if (!identificacion.trim()) faltan.identificacion = 'La identificación es obligatoria';
@@ -78,7 +97,30 @@ export default function Login() {
             <input type="checkbox" checked={recordar} onChange={(e) => setRecordar(e.target.checked)} />
             <span>Recordar mi identificación en este equipo <small>(nunca se guarda la contraseña)</small></span>
           </label>
-          <Boton type="submit" cargando={enviando}>Ingresar</Boton>
+
+          <div
+            className={`estado-servidor estado-${servidor}`}
+            role="status"
+            onClick={servidor === 'error' ? verificarServidor : undefined}
+          >
+            <div className="estado-servidor-fila">
+              <span className="estado-dot" aria-hidden="true" />
+              <span>
+                {servidor === 'cargando' && 'Iniciando servidor… (puede tardar ~40 s)'}
+                {servidor === 'listo' && 'Servidor conectado · Todo listo'}
+                {servidor === 'error' && 'Sin conexión · Haz clic aquí para reintentar'}
+              </span>
+            </div>
+            {servidor === 'cargando' && (
+              <div className="barra-progreso" aria-hidden="true">
+                <div className="barra-progreso-fill" />
+              </div>
+            )}
+          </div>
+
+          <Boton type="submit" cargando={enviando} disabled={servidor !== 'listo'}>
+            {servidor === 'cargando' ? 'Esperando servidor…' : 'Ingresar'}
+          </Boton>
         </form>
       </section>
     </div>
