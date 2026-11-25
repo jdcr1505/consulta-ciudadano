@@ -31,14 +31,6 @@ export default function Guilloche({ ancho = 600, alto = 240, lineas = 26, color 
   );
 }
 
-export function Sello({ tam = 36 }) {
-  return (
-    <svg width={tam} height={tam} viewBox="0 0 40 40" role="img" aria-label="Registraduría Konrad Lorenz">
-      <rect width="40" height="40" rx="10" fill="#F2B705" />
-      <rect x="7" y="11" width="26" height="18" rx="3" fill="none" stroke="#0B3135" strokeWidth="2" />
-      <circle cx="15" cy="18" r="2.6" fill="#0B3135" />
-      <path d="M11 25c.6-2 2-2.8 4-2.8s3.4.8 4 2.8" fill="none" stroke="#0B3135" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M23 17h6M23 21h5" stroke="#0B3135" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
+export function Sello() {
+  return null;
 }

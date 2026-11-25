@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { get } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import Guilloche, { Sello } from './Guilloche.jsx';
 import { Icono } from './icons.jsx';
@@ -18,12 +16,7 @@ const NAV = [
 ];
 
 export function BandaSimulacion() {
-  const [info, setInfo] = useState(null);
-  useEffect(() => { get('/info').then(setInfo).catch(() => {}); }, []);
-  if (!info) return null;
-  const s = info.simulaciones;
-  const partes = [s.datos && 'datos ficticios', s.defensa && 'validación de Defensa simulada', s.correo && 'correo simulado (modo desarrollo)'].filter(Boolean);
-  return <div className="banda-sim" role="note"><Icono nombre="info" tam={14} />Sistema académico · {partes.join(' · ')}</div>;
+  return null;
 }
 
 const TITULOS = {
@@ -44,10 +37,9 @@ export default function Layout() {
   const hoy = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
   return (
     <div className="app">
-      <BandaSimulacion />
       <aside className="lateral">
         <div className="lateral-cabecera">
-          <Guilloche ancho={480} alto={200} lineas={22} opacidad={0.2} />
+          <Guilloche ancho={480} alto={200} lineas={22} opacidad={0.14} />
           <div className="marca"><Sello /><div><strong>Registraduría</strong><span>Konrad Lorenz</span></div></div>
         </div>
         <nav aria-label="Principal">

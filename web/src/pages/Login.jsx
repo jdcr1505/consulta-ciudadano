@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useAuth, leerIdentificacionRecordada } from '../auth/AuthContext.jsx';
 import { Aviso, Boton } from '../components/ui.jsx';
-import { BandaSimulacion } from '../components/Layout.jsx';
 import Guilloche, { Sello } from '../components/Guilloche.jsx';
 
 export default function Login() {
@@ -34,33 +33,44 @@ export default function Login() {
 
   return (
     <div className="login">
-      <BandaSimulacion />
       <section className="login-marca">
-        <Guilloche ancho={900} alto={900} lineas={46} opacidad={0.2} fase={0.6} />
+        <Guilloche ancho={900} alto={900} lineas={46} opacidad={0.14} fase={0.6} />
         <div className="login-marca-texto">
-        <Sello tam={52} />
-        <p className="entidad">Registraduría Konrad Lorenz</p>
-        <h1>Sistema de Consulta Ciudadano</h1>
-        <p>Administración de ciudadanos, solicitudes de acceso, usuarios y roles de la fuerza pública.</p>
+          <Sello tam={52} />
+          <p className="entidad">Registraduría Konrad Lorenz</p>
+          <h1>Sistema de Consulta Ciudadano</h1>
+          <p>Administración de ciudadanos, solicitudes de acceso, usuarios y roles de la fuerza pública.</p>
         </div>
       </section>
       <section className="login-form">
         <form onSubmit={enviar} noValidate aria-label="Inicio de sesión">
           <h2>Ingreso al sistema</h2>
+          <p className="login-subtitulo">Ingresa tus credenciales administrativas para continuar.</p>
           {general && <Aviso tipo="error">{general}</Aviso>}
           <div className="campo">
             <label htmlFor="identificacion">Número de identificación</label>
             <input
-              id="identificacion" className="id-grande" inputMode="numeric" autoComplete="username"
-              value={identificacion} onChange={(e) => setIdentificacion(e.target.value)} aria-invalid={errores.identificacion ? true : undefined}
+              id="identificacion"
+              className="id-grande"
+              inputMode="numeric"
+              autoComplete="username"
+              placeholder="Ej. 1000000001"
+              value={identificacion}
+              onChange={(e) => setIdentificacion(e.target.value)}
+              aria-invalid={errores.identificacion ? true : undefined}
             />
             {errores.identificacion && <p className="error-campo" role="alert">{errores.identificacion}</p>}
           </div>
           <div className="campo">
             <label htmlFor="password">Contraseña</label>
             <input
-              id="password" type="password" autoComplete="current-password"
-              value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={errores.password ? true : undefined}
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={errores.password ? true : undefined}
             />
             {errores.password && <p className="error-campo" role="alert">{errores.password}</p>}
           </div>
