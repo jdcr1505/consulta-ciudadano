@@ -15,7 +15,7 @@ export default function Diagnostico({ onVolver }) {
   const [mostrarDatos, setMostrarDatos] = useState(false);
   const ocupado = useRef(false);
 
-  if (!permiso) return <View style={s.centro}><Text>Comprobando permiso de cámara…</Text></View>;
+  if (!permiso) return <View style={s.centro}><Text style={{ color: colores.tenue }}>Comprobando permiso de cámara…</Text></View>;
   if (!permiso.granted) {
     return (
       <ScrollView contentContainerStyle={s.cont}>
@@ -65,7 +65,7 @@ export default function Diagnostico({ onVolver }) {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
       <CameraView
         style={{ flex: 1 }} facing="back"
         barcodeScannerSettings={{ barcodeTypes: ['pdf417', 'qr', 'code128', 'code39', 'datamatrix', 'aztec'] }}
@@ -80,16 +80,16 @@ export default function Diagnostico({ onVolver }) {
 }
 
 const s = StyleSheet.create({
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colores.fondo },
   cont: { padding: 24, paddingTop: 28 },
-  titulo: { fontSize: 24, fontWeight: '800', color: colores.petroleo, marginBottom: 8 },
+  titulo: { fontSize: 24, fontWeight: '800', color: colores.tinta, marginBottom: 8 },
   nota: { color: colores.tenue, marginBottom: 14 },
   dato: { color: colores.tinta, marginBottom: 6, fontSize: 15 },
-  fuerte: { fontWeight: '800' },
-  sub: { fontWeight: '700', color: colores.petroleo, marginTop: 14, marginBottom: 4 },
+  fuerte: { fontWeight: '800', color: '#ffffff' },
+  sub: { fontWeight: '700', color: '#c4b5fd', marginTop: 14, marginBottom: 4 },
   leyenda: { color: colores.tenue, fontSize: 12, marginBottom: 6 },
-  mono: { fontFamily: 'monospace', fontSize: 12, backgroundColor: '#fff', padding: 8, borderWidth: 1, borderColor: colores.linea, marginBottom: 10 },
-  alerta: { color: colores.peligro, marginBottom: 10 },
-  pie: { backgroundColor: colores.fondo, padding: 16 },
+  mono: { fontFamily: 'monospace', fontSize: 12, backgroundColor: colores.panel, color: colores.tinta, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: colores.linea, marginBottom: 10 },
+  alerta: { color: '#f87171', marginBottom: 10 },
+  pie: { backgroundColor: colores.panel, borderTopWidth: 1, borderTopColor: colores.linea, padding: 16 },
   pieTxt: { color: colores.tinta, marginBottom: 8 },
 });

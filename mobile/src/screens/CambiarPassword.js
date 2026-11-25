@@ -46,6 +46,6 @@ export default function CambiarPassword() {
 
 const s = StyleSheet.create({
   cont: { padding: 24, paddingTop: 36 },
-  titulo: { fontSize: 24, fontWeight: '800', color: colores.petroleo, marginBottom: 8 },
+  titulo: { fontSize: 24, fontWeight: '800', color: colores.tinta, marginBottom: 8 },
   nota: { color: colores.tenue, marginBottom: 16 },
 });

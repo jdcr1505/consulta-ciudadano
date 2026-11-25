@@ -13,7 +13,7 @@ export default function LectorCodigo({ onNumeros, onManual, onVolver }) {
   const [aviso, setAviso] = useState('');
   const ocupado = useRef(false);
 
-  if (!permiso) return <View style={s.centro}><Text>Comprobando permiso de cámara…</Text></View>;
+  if (!permiso) return <View style={s.centro}><Text style={{ color: colores.tenue }}>Comprobando permiso de cámara…</Text></View>;
   if (!permiso.granted) {
     return (
       <ScrollView contentContainerStyle={s.cont}>
@@ -56,13 +56,13 @@ export default function LectorCodigo({ onNumeros, onManual, onVolver }) {
 }
 
 const s = StyleSheet.create({
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colores.fondo },
   cont: { padding: 24, paddingTop: 28 },
-  titulo: { fontSize: 24, fontWeight: '800', color: colores.petroleo, marginBottom: 8 },
+  titulo: { fontSize: 24, fontWeight: '800', color: colores.tinta, marginBottom: 8 },
   nota: { color: colores.tenue, marginBottom: 14 },
   guia: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 230, alignItems: 'center', justifyContent: 'center' },
-  marco: { width: '86%', height: 130, borderWidth: 3, borderColor: colores.señal, borderRadius: 12, backgroundColor: 'rgba(242,183,5,.08)' },
-  linterna: { position: 'absolute', top: 16, right: 16, backgroundColor: 'rgba(0,0,0,.5)', width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  pie: { backgroundColor: colores.fondo, padding: 16, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+  marco: { width: '86%', height: 130, borderWidth: 2.5, borderColor: colores.petroleo3, borderRadius: 12, backgroundColor: 'rgba(139, 92, 246, 0.12)' },
+  linterna: { position: 'absolute', top: 16, right: 16, backgroundColor: 'rgba(0,0,0,.6)', width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  pie: { backgroundColor: colores.panel, borderTopWidth: 1, borderTopColor: colores.linea, padding: 16, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
   pieTxt: { color: colores.tinta, marginBottom: 8 },
 });

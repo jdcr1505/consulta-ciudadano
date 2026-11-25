@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { Aviso, Boton } from '../components/ui';
 import { formatoMiles } from '../scanner/analisis';
 import { colores, sombra } from '../theme';
@@ -16,7 +16,7 @@ export default function ConfirmarNumero({ numeros, advertencia, onConsultar, onL
       {numeros.map((n) => (
         <Pressable key={n} onPress={() => setSel(n)} accessibilityRole="radio" accessibilityState={{ selected: sel === n }} accessibilityLabel={`Número ${formatoMiles(n)}`}
           style={[s.tarjeta, sel === n && s.tarjetaSel]}>
-          <Ionicons name={sel === n ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={sel === n ? colores.petroleo2 : colores.tenue} />
+          <Ionicons name={sel === n ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={sel === n ? '#a78bfa' : colores.tenue} />
           <Text style={s.numero}>{formatoMiles(n)}</Text>
         </Pressable>
       ))}
@@ -29,9 +29,9 @@ export default function ConfirmarNumero({ numeros, advertencia, onConsultar, onL
 
 const s = StyleSheet.create({
   cont: { padding: 22, paddingTop: 28 },
-  titulo: { fontSize: 26, fontWeight: '800', color: colores.petroleo, letterSpacing: -0.5 },
+  titulo: { fontSize: 26, fontWeight: '800', color: colores.tinta, letterSpacing: -0.5 },
   nota: { color: colores.tenue, marginTop: 6, marginBottom: 18 },
-  tarjeta: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 14, padding: 18, marginBottom: 12, borderWidth: 2, borderColor: 'transparent', ...sombra.suave },
-  tarjetaSel: { borderColor: colores.petroleo2 },
-  numero: { fontSize: 28, fontWeight: '800', letterSpacing: 1, color: colores.tinta, fontVariant: ['tabular-nums'] },
+  tarjeta: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colores.panel, borderRadius: 14, padding: 18, marginBottom: 12, borderWidth: 1.5, borderColor: colores.linea, ...sombra.suave },
+  tarjetaSel: { borderColor: colores.petroleo3, backgroundColor: 'rgba(139, 92, 246, 0.10)' },
+  numero: { fontSize: 28, fontWeight: '800', letterSpacing: 1, color: '#ffffff', fontVariant: ['tabular-nums'] },
 });

@@ -84,7 +84,7 @@ export default function HistorialConsultas({ onReportarNovedad, onVolver }) {
       {error ? <Aviso tipo="error">{error}</Aviso> : null}
 
       {cargando ? (
-        <View style={s.centro}><ActivityIndicator size="large" color={colores.petroleo2} /></View>
+        <View style={s.centro}><ActivityIndicator size="large" color={colores.petroleo3} /></View>
       ) : datos?.items?.length === 0 ? (
         <View style={s.vacio}>
           <Ionicons name="time-outline" size={34} color={colores.tenue} />
@@ -122,7 +122,7 @@ export default function HistorialConsultas({ onReportarNovedad, onVolver }) {
                     accessibilityRole="button"
                     style={s.accionNovedad}
                   >
-                    <Ionicons name="flag-outline" size={16} color={colores.petroleo2} />
+                    <Ionicons name="flag-outline" size={16} color="#a78bfa" />
                     <Text style={s.accionNovedadTxt}>Registrar novedad</Text>
                   </Pressable>
                 )}
@@ -151,34 +151,34 @@ export default function HistorialConsultas({ onReportarNovedad, onVolver }) {
 
 const s = StyleSheet.create({
   cont: { padding: 20, paddingTop: 24, paddingBottom: 32 },
-  titulo: { fontSize: 26, fontWeight: '800', color: colores.petroleo, letterSpacing: -0.5 },
+  titulo: { fontSize: 26, fontWeight: '800', color: colores.tinta, letterSpacing: -0.5 },
   nota: { color: colores.tenue, marginTop: 4, marginBottom: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: '#fff', borderWidth: 1, borderColor: colores.linea },
+  chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 999, backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea },
   chipActivo: { backgroundColor: colores.petroleo2, borderColor: colores.petroleo2 },
   chipTxt: { fontSize: 13, fontWeight: '700', color: colores.tenue },
-  chipTxtActivo: { color: '#fff' },
+  chipTxtActivo: { color: '#ffffff' },
   centro: { paddingVertical: 32, alignItems: 'center' },
   contador: { fontSize: 13, fontWeight: '700', color: colores.tenue, marginBottom: 10 },
-  tarjeta: { backgroundColor: '#fff', borderRadius: 14, padding: 15, marginBottom: 12, ...sombra.suave },
+  tarjeta: { backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea, borderRadius: 14, padding: 15, marginBottom: 12, ...sombra.suave },
   filaSup: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  num: { fontSize: 18, fontWeight: '800', color: colores.tinta, fontVariant: ['tabular-nums'] },
+  num: { fontSize: 18, fontWeight: '800', color: '#ffffff', fontVariant: ['tabular-nums'] },
   badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
   badgeRojo: { backgroundColor: colores.rojoSuave },
   badgeVerde: { backgroundColor: colores.verdeSuave },
   badgeTxt: { fontSize: 12, fontWeight: '800' },
-  badgeTxtRojo: { color: colores.rojo },
-  badgeTxtVerde: { color: colores.verde },
+  badgeTxtRojo: { color: '#f87171' },
+  badgeTxtVerde: { color: '#4ade80' },
   ciudadano: { fontSize: 15, fontWeight: '700', color: colores.tinta, marginTop: 6 },
   meta: { flexDirection: 'row', gap: 6, marginTop: 6 },
   metaTxt: { fontSize: 12, color: colores.tenue },
   accionNovedad: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colores.linea },
-  accionNovedadTxt: { color: colores.petroleo2, fontWeight: '700', fontSize: 13 },
-  vacio: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 24, marginVertical: 12 },
+  accionNovedadTxt: { color: '#a78bfa', fontWeight: '700', fontSize: 13 },
+  vacio: { alignItems: 'center', backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea, borderRadius: 14, padding: 24, marginVertical: 12 },
   vacioTitulo: { fontWeight: '800', fontSize: 16, color: colores.tinta, marginTop: 8 },
   vacioTxt: { color: colores.tenue, textAlign: 'center', marginTop: 4 },
   paginacion: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 },
-  btnPag: { backgroundColor: '#fff', borderWidth: 1, borderColor: colores.petroleo2, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  btnPag: { backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
   btnPagOff: { opacity: 0.45 },
-  btnPagTxt: { color: colores.petroleo2, fontWeight: '700', fontSize: 13 },
+  btnPagTxt: { color: '#c4b5fd', fontWeight: '700', fontSize: 13 },
 });

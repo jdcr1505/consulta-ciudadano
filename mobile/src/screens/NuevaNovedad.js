@@ -76,7 +76,7 @@ export default function NuevaNovedad({ identificacionInicial = '', onRegistrada,
 
 const s = StyleSheet.create({
   cont: { padding: 22, paddingTop: 26, paddingBottom: 32 },
-  titulo: { fontSize: 26, fontWeight: '800', color: colores.petroleo, letterSpacing: -0.5 },
+  titulo: { fontSize: 26, fontWeight: '800', color: colores.tinta, letterSpacing: -0.5 },
   nota: { color: colores.tenue, marginTop: 6, marginBottom: 18 },
   area: { minHeight: 120, textAlignVertical: 'top' },
 });

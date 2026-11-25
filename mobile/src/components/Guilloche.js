@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import Svg, { Path } from 'react-native-svg';
 
 /** Guilloché: trama de líneas onduladas (medida antifalsificación de cédulas y billetes). Seña visual del sistema. */
-export default function Guilloche({ ancho = 400, alto = 200, lineas = 20, color = '#ffffff', opacidad = 0.18, fase = 0, style }) {
+export default function Guilloche({ ancho = 400, alto = 200, lineas = 20, color = '#ffffff', opacidad = 0.14, fase = 0, style }) {
   const trazos = useMemo(() => {
     const salida = [];
     for (let i = 0; i < lineas; i++) {

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useRef } from 'react';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useAuth } from '../auth/AuthContext';
 import Guilloche from '../components/Guilloche';
 import { Boton } from '../components/ui';
 import { formatoMiles } from '../scanner/analisis';
@@ -23,10 +24,13 @@ function descripcion(v) {
   return { color: colores.ambar, icono: SIN_CONEXION.has(v.codigo) ? 'cloud-offline-outline' : v.codigo === 'CONSULTA_NO_AUTORIZADA' ? 'close-circle' : 'warning-outline', titulo: titulos[v.codigo] ?? 'No se pudo consultar', sub: 'La consulta no se completó' };
 }
 
-export default function Resultado({ vista, onNueva, onInicio }) {
+export default function Resultado({ vista, onNueva, onReportarNovedad, onInicio }) {
+  const { usuario } = useAuth();
+  const puedeNovedad = usuario?.permisos?.includes('novedades:crear');
   const d = descripcion(vista);
   const escala = useRef(new Animated.Value(0.92)).current;
   const opacidad = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     Animated.parallel([
       Animated.spring(escala, { toValue: 1, useNativeDriver: true, friction: 7 }),
@@ -35,12 +39,13 @@ export default function Resultado({ vista, onNueva, onInicio }) {
   }, [escala, opacidad]);
 
   const hora = vista.tipo === 'ok' ? new Date(vista.datos.consulta.fechaHora).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : null;
+  const idCiudadano = vista.tipo === 'ok' ? (vista.datos.ciudadano?.identificacion ?? vista.identificacion) : null;
 
   return (
     <ScrollView contentContainerStyle={s.cont}>
       <Animated.View style={[s.tarjeta, { opacity: opacidad, transform: [{ scale: escala }] }]} accessibilityRole="summary" accessibilityLabel={`${d.titulo}. ${d.sub}`}>
         <View style={[s.cabecera, { backgroundColor: d.color }]}>
-          <Guilloche ancho={420} alto={200} lineas={18} opacidad={0.24} />
+          <Guilloche ancho={420} alto={200} lineas={18} opacidad={0.22} />
           <Ionicons name={d.icono} size={46} color="#fff" />
           <Text style={s.estado}>{d.titulo}</Text>
           <Text style={s.sub}>{d.sub}</Text>
@@ -55,7 +60,7 @@ export default function Resultado({ vista, onNueva, onInicio }) {
                 </>
               )}
               <Text style={s.etiqueta}>Identificación</Text>
-              <Text style={[s.valor, s.num]}>{formatoMiles(vista.datos.ciudadano?.identificacion ?? vista.identificacion)}</Text>
+              <Text style={[s.valor, s.num]}>{formatoMiles(idCiudadano)}</Text>
               {vista.datos.registrado === false && (
                 <Text style={s.nota}>Esta identificación no figura en el sistema, por lo que no tiene un requerimiento registrado.</Text>
               )}
@@ -66,7 +71,7 @@ export default function Resultado({ vista, onNueva, onInicio }) {
             <>
               <Text style={s.valor}>{vista.mensaje}</Text>
               {SIN_CONEXION.has(vista.codigo) && (
-                <View style={s.alerta}><Ionicons name="alert-circle" size={20} color={colores.ambar} /><Text style={s.alertaTxt}>Esto NO significa que el ciudadano no sea requerido. Vuelva a intentarlo cuando haya conexión.</Text></View>
+                <View style={s.alerta}><Ionicons name="alert-circle" size={20} color="#fbbf24" /><Text style={s.alertaTxt}>Esto NO significa que el ciudadano no sea requerido. Vuelva a intentarlo cuando haya conexión.</Text></View>
               )}
             </>
           )}
@@ -74,6 +79,13 @@ export default function Resultado({ vista, onNueva, onInicio }) {
         </View>
       </Animated.View>
       <Boton titulo="Nueva consulta" onPress={onNueva} />
+      {vista.tipo === 'ok' && vista.datos.registrado && puedeNovedad && (
+        <Boton
+          titulo="Registrar novedad sobre este ciudadano"
+          variante="secundario"
+          onPress={() => onReportarNovedad(idCiudadano)}
+        />
+      )}
       <Boton titulo="Ir al inicio" variante="secundario" onPress={onInicio} />
     </ScrollView>
   );
@@ -81,10 +93,10 @@ export default function Resultado({ vista, onNueva, onInicio }) {
 
 const s = StyleSheet.create({
   cont: { padding: 20, paddingTop: 24 },
-  tarjeta: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', marginBottom: 16, ...sombra.media },
+  tarjeta: { backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea, borderRadius: 20, overflow: 'hidden', marginBottom: 16, ...sombra.media },
   cabecera: { alignItems: 'center', paddingVertical: 30, paddingHorizontal: 16, overflow: 'hidden' },
-  estado: { color: '#fff', fontSize: 34, fontWeight: '900', letterSpacing: -1, marginTop: 6, textAlign: 'center' },
-  sub: { color: 'rgba(255,255,255,.85)', fontWeight: '600', marginTop: 2 },
+  estado: { color: '#fff', fontSize: 34, fontWeight: '800', letterSpacing: -1, marginTop: 6, textAlign: 'center' },
+  sub: { color: 'rgba(255,255,255,.88)', fontWeight: '600', marginTop: 2 },
   cuerpo: { padding: 20 },
   etiqueta: { color: colores.tenue, fontSize: 12, fontWeight: '700', marginTop: 10 },
   valor: { color: colores.tinta, fontSize: 19, fontWeight: '700', marginTop: 2 },
@@ -92,7 +104,7 @@ const s = StyleSheet.create({
   registro: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderTopColor: colores.linea },
   registroTxt: { color: colores.tenue, fontSize: 13 },
   nota: { color: colores.tenue, marginTop: 12 },
-  alerta: { flexDirection: 'row', gap: 10, backgroundColor: colores.ambarSuave, borderRadius: 10, padding: 12, marginTop: 14 },
-  alertaTxt: { flex: 1, color: colores.ambar, fontWeight: '700' },
+  alerta: { flexDirection: 'row', gap: 10, backgroundColor: colores.ambarSuave, borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.35)', borderRadius: 10, padding: 12, marginTop: 14 },
+  alertaTxt: { flex: 1, color: '#fde68a', fontWeight: '700' },
   pie: { color: colores.tenue, fontSize: 12, marginTop: 18 },
 });

@@ -20,11 +20,11 @@ export default function Home({ onConsultar, onHistorial, onNuevaNovedad, onMisNo
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
       <View style={s.cabecera}>
-        <Guilloche ancho={420} alto={220} lineas={20} opacidad={0.22} />
+        <Guilloche ancho={420} alto={220} lineas={20} opacidad={0.14} />
         <Text style={s.saludo}>{saludo}</Text>
         <Text style={s.nombre}>{usuario.nombres} {usuario.apellidos}</Text>
         <View style={s.chip}>
-          <Ionicons name="shield-checkmark-outline" size={14} color={colores.petroleo} />
+          <Ionicons name="shield-checkmark-outline" size={14} color="#c4b5fd" />
           <Text style={s.chipTxt}>{usuario.rol} · ID {usuario.identificacion}</Text>
         </View>
       </View>
@@ -45,7 +45,6 @@ export default function Home({ onConsultar, onHistorial, onNuevaNovedad, onMisNo
                 icono="time-outline"
                 titulo="Historial de consultas"
                 descripcion="Revise las verificaciones realizadas desde su cuenta"
-                tono="suave"
                 onPress={onHistorial}
               />
             )}
@@ -54,7 +53,6 @@ export default function Home({ onConsultar, onHistorial, onNuevaNovedad, onMisNo
                 icono="flag-outline"
                 titulo="Registrar novedad"
                 descripcion="Reporte una inconsistencia o novedad sobre un ciudadano"
-                tono="suave"
                 onPress={onNuevaNovedad}
               />
             )}
@@ -63,7 +61,6 @@ export default function Home({ onConsultar, onHistorial, onNuevaNovedad, onMisNo
                 icono="list-outline"
                 titulo="Mis novedades"
                 descripcion="Consulte el estado y respuesta de sus novedades reportadas"
-                tono="suave"
                 onPress={onMisNovedades}
               />
             )}
@@ -72,7 +69,6 @@ export default function Home({ onConsultar, onHistorial, onNuevaNovedad, onMisNo
                 icono="scan-outline"
                 titulo="Diagnóstico del lector"
                 descripcion="Herramienta para probar la lectura de una cédula"
-                tono="suave"
                 onPress={onDiagnostico}
               />
             )}
@@ -87,11 +83,34 @@ export default function Home({ onConsultar, onHistorial, onNuevaNovedad, onMisNo
 }
 
 const s = StyleSheet.create({
-  cabecera: { backgroundColor: colores.petroleo2, paddingHorizontal: 24, paddingTop: 30, paddingBottom: 34, overflow: 'hidden', borderBottomWidth: 4, borderBottomColor: colores.señal, borderBottomLeftRadius: 22, borderBottomRightRadius: 22, ...sombra.media },
-  saludo: { color: '#b6d0cd', fontWeight: '600' },
-  nombre: { color: '#fff', fontSize: 26, fontWeight: '800', marginTop: 2, letterSpacing: -0.5 },
-  chip: { flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 6, backgroundColor: colores.señal, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, marginTop: 14 },
-  chipTxt: { color: colores.petroleo, fontWeight: '800', fontSize: 12 },
+  cabecera: {
+    backgroundColor: colores.panel,
+    paddingHorizontal: 24,
+    paddingTop: 30,
+    paddingBottom: 32,
+    overflow: 'hidden',
+    borderBottomWidth: 1,
+    borderBottomColor: colores.linea,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
+    ...sombra.media,
+  },
+  saludo: { color: '#a78bfa', fontWeight: '700', fontSize: 13 },
+  nombre: { color: '#ffffff', fontSize: 25, fontWeight: '800', marginTop: 4, letterSpacing: -0.5 },
+  chip: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.35)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginTop: 14,
+  },
+  chipTxt: { color: '#e9d5ff', fontWeight: '700', fontSize: 12 },
   cuerpo: { padding: 20, paddingTop: 24 },
   titulo: { fontSize: 18, fontWeight: '800', color: colores.tinta, marginBottom: 14 },
 });

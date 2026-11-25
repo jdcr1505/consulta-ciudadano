@@ -16,10 +16,10 @@ const ESTADOS = [
 ];
 
 export const ESTILO_ESTADO_NOVEDAD = {
-  REGISTRADA: { texto: 'Registrada', bg: '#e3eeec', fg: colores.petroleo2 },
-  EN_REVISION: { texto: 'En revisión', bg: colores.ambarSuave, fg: colores.ambar },
-  ATENDIDA: { texto: 'Atendida', bg: colores.verdeSuave, fg: colores.verde },
-  DESCARTADA: { texto: 'Descartada', bg: colores.rojoSuave, fg: colores.rojo },
+  REGISTRADA: { texto: 'Registrada', bg: 'rgba(139, 92, 246, 0.16)', fg: '#c4b5fd' },
+  EN_REVISION: { texto: 'En revisión', bg: colores.ambarSuave, fg: '#fbbf24' },
+  ATENDIDA: { texto: 'Atendida', bg: colores.verdeSuave, fg: '#4ade80' },
+  DESCARTADA: { texto: 'Descartada', bg: colores.rojoSuave, fg: '#f87171' },
 };
 
 const fechaHora = (iso) => (iso ? new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
@@ -96,7 +96,7 @@ export default function MisNovedades({ aviso = '', onNueva, onVerDetalle, onVolv
       {error ? <Aviso tipo="error">{error}</Aviso> : null}
 
       {cargando ? (
-        <View style={s.centro}><ActivityIndicator size="large" color={colores.petroleo2} /></View>
+        <View style={s.centro}><ActivityIndicator size="large" color={colores.petroleo3} /></View>
       ) : datos?.items?.length === 0 ? (
         <View style={s.vacio}>
           <Ionicons name="flag-outline" size={34} color={colores.tenue} />
@@ -107,7 +107,7 @@ export default function MisNovedades({ aviso = '', onNueva, onVerDetalle, onVolv
         <>
           <Text style={s.contador}>{datos.total} novedad{datos.total === 1 ? '' : 'es'}</Text>
           {datos.items.map((n) => {
-            const est = ESTILO_ESTADO_NOVEDAD[n.estado] ?? { texto: n.estado, bg: '#eef2f1', fg: colores.tenue };
+            const est = ESTILO_ESTADO_NOVEDAD[n.estado] ?? { texto: n.estado, bg: '#1f1f24', fg: colores.tenue };
             return (
               <Pressable
                 key={n.id}
@@ -152,16 +152,16 @@ export default function MisNovedades({ aviso = '', onNueva, onVerDetalle, onVolv
 
 const s = StyleSheet.create({
   cont: { padding: 20, paddingTop: 24, paddingBottom: 32 },
-  titulo: { fontSize: 26, fontWeight: '800', color: colores.petroleo, letterSpacing: -0.5 },
+  titulo: { fontSize: 26, fontWeight: '800', color: colores.tinta, letterSpacing: -0.5 },
   nota: { color: colores.tenue, marginTop: 4, marginBottom: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: '#fff', borderWidth: 1, borderColor: colores.linea },
+  chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 999, backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea },
   chipActivo: { backgroundColor: colores.petroleo2, borderColor: colores.petroleo2 },
   chipTxt: { fontSize: 13, fontWeight: '700', color: colores.tenue },
-  chipTxtActivo: { color: '#fff' },
+  chipTxtActivo: { color: '#ffffff' },
   centro: { paddingVertical: 32, alignItems: 'center' },
   contador: { fontSize: 13, fontWeight: '700', color: colores.tenue, marginBottom: 10 },
-  tarjeta: { backgroundColor: '#fff', borderRadius: 14, padding: 15, marginBottom: 12, ...sombra.suave },
+  tarjeta: { backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea, borderRadius: 14, padding: 15, marginBottom: 12, ...sombra.suave },
   filaSup: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
   ciudadano: { flex: 1, fontSize: 16, fontWeight: '800', color: colores.tinta },
   badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
@@ -170,12 +170,12 @@ const s = StyleSheet.create({
   desc: { fontSize: 14, color: colores.tinta, marginTop: 8, lineHeight: 20 },
   pie: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colores.linea },
   fecha: { fontSize: 12, color: colores.tenue },
-  verDetalle: { fontSize: 13, fontWeight: '700', color: colores.petroleo2 },
-  vacio: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 24, marginVertical: 12 },
+  verDetalle: { fontSize: 13, fontWeight: '700', color: '#a78bfa' },
+  vacio: { alignItems: 'center', backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea, borderRadius: 14, padding: 24, marginVertical: 12 },
   vacioTitulo: { fontWeight: '800', fontSize: 16, color: colores.tinta, marginTop: 8 },
   vacioTxt: { color: colores.tenue, textAlign: 'center', marginTop: 4 },
   paginacion: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10 },
-  btnPag: { backgroundColor: '#fff', borderWidth: 1, borderColor: colores.petroleo2, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  btnPag: { backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
   btnPagOff: { opacity: 0.45 },
-  btnPagTxt: { color: colores.petroleo2, fontWeight: '700', fontSize: 13 },
+  btnPagTxt: { color: '#c4b5fd', fontWeight: '700', fontSize: 13 },
 });

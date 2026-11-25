@@ -4,7 +4,6 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { post } from './src/api/client';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
-import { BandaSimulacion } from './src/components/ui';
 import CambiarPassword from './src/screens/CambiarPassword';
 import ConfirmarNumero from './src/screens/ConfirmarNumero';
 import ConsultaManual from './src/screens/ConsultaManual';
@@ -44,7 +43,7 @@ function Raiz() {
     }
   }
 
-  if (cargando) return <View style={s.centro}><ActivityIndicator size="large" color={colores.petroleo} accessibilityLabel="Cargando" /></View>;
+  if (cargando) return <View style={s.centro}><ActivityIndicator size="large" color={colores.petroleo3} accessibilityLabel="Cargando" /></View>;
 
   if (usuario) {
     if (usuario.debeCambiarPassword) return <CambiarPassword />;
@@ -117,8 +116,7 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <SafeAreaView style={s.raiz}>
-          <StatusBar style="dark" />
-          <BandaSimulacion />
+          <StatusBar style="light" backgroundColor="#09090b" />
           <Raiz />
         </SafeAreaView>
       </AuthProvider>
@@ -128,5 +126,5 @@ export default function App() {
 
 const s = StyleSheet.create({
   raiz: { flex: 1, backgroundColor: colores.fondo },
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colores.fondo },
 });

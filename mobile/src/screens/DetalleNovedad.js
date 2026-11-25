@@ -35,7 +35,7 @@ export default function DetalleNovedad({ novedadId, onVolver }) {
   if (cargando) {
     return (
       <View style={s.centro}>
-        <ActivityIndicator size="large" color={colores.petroleo2} />
+        <ActivityIndicator size="large" color={colores.petroleo3} />
       </View>
     );
   }
@@ -49,7 +49,7 @@ export default function DetalleNovedad({ novedadId, onVolver }) {
     );
   }
 
-  const est = ESTILO_ESTADO_NOVEDAD[novedad.estado] ?? { texto: novedad.estado, bg: '#eef2f1', fg: colores.tenue };
+  const est = ESTILO_ESTADO_NOVEDAD[novedad.estado] ?? { texto: novedad.estado, bg: '#1f1f24', fg: colores.tenue };
 
   return (
     <ScrollView contentContainerStyle={s.cont}>
@@ -76,7 +76,7 @@ export default function DetalleNovedad({ novedadId, onVolver }) {
 
       <Text style={s.subtitulo}>Historial de estados</Text>
       {novedad.historial?.map((h, i) => {
-        const estItem = ESTILO_ESTADO_NOVEDAD[h.estadoNuevo] ?? { texto: h.estadoNuevo, fg: colores.petroleo2 };
+        const estItem = ESTILO_ESTADO_NOVEDAD[h.estadoNuevo] ?? { texto: h.estadoNuevo, fg: '#c4b5fd' };
         return (
           <View key={i} style={s.paso}>
             <View style={s.pasoCab}>
@@ -94,19 +94,19 @@ export default function DetalleNovedad({ novedadId, onVolver }) {
 }
 
 const s = StyleSheet.create({
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colores.fondo },
   cont: { padding: 20, paddingTop: 24, paddingBottom: 32 },
-  titulo: { fontSize: 26, fontWeight: '800', color: colores.petroleo, letterSpacing: -0.5, marginBottom: 14 },
-  tarjeta: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 18, ...sombra.suave },
+  titulo: { fontSize: 26, fontWeight: '800', color: colores.tinta, letterSpacing: -0.5, marginBottom: 14 },
+  tarjeta: { backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea, borderRadius: 16, padding: 18, marginBottom: 18, ...sombra.suave },
   estadoBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 10, marginBottom: 8 },
   estadoTxt: { fontWeight: '800', fontSize: 15 },
   etiqueta: { color: colores.tenue, fontSize: 12, fontWeight: '700', marginTop: 10 },
   valor: { color: colores.tinta, fontSize: 17, fontWeight: '800', marginTop: 2 },
   valorSec: { color: colores.tinta, fontSize: 14, fontWeight: '600', marginTop: 2 },
   num: { fontVariant: ['tabular-nums'] },
-  descripcion: { color: colores.tinta, fontSize: 15, lineHeight: 21, marginTop: 4, backgroundColor: '#f6f9f8', padding: 12, borderRadius: 10 },
-  subtitulo: { fontSize: 18, fontWeight: '800', color: colores.petroleo, marginBottom: 10 },
-  paso: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: colores.petroleo3, ...sombra.suave },
+  descripcion: { color: colores.tinta, fontSize: 15, lineHeight: 21, marginTop: 4, backgroundColor: colores.fondo, borderWidth: 1, borderColor: colores.linea, padding: 12, borderRadius: 10 },
+  subtitulo: { fontSize: 18, fontWeight: '800', color: colores.tinta, marginBottom: 10 },
+  paso: { backgroundColor: colores.panel, borderWidth: 1, borderColor: colores.linea, borderRadius: 12, padding: 14, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: colores.petroleo3, ...sombra.suave },
   pasoCab: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   pasoEstado: { fontWeight: '800', fontSize: 15 },
   pasoFecha: { fontSize: 12, color: colores.tenue },
